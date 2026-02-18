@@ -2,10 +2,6 @@ from asp_rewriting.parser import RuleParser
 from pytest import fixture
 
 
-def nospace(s: str):
-    return s.replace(" ", "")
-
-
 @fixture
 def parser():
     return RuleParser()

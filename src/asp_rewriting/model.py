@@ -310,12 +310,38 @@ class PatternVariableCollection:
     Variable capturing a collection of symbols/atoms.
 
     E.g. ?body*
+
+    Optionally, it is possible to define the characters that should be included in a match over many atoms.
+
+    E.g. ?body[;]*
+
+    Means that the variable would match over
+
+    a;b;c
+
+    While ?body* would match by default only over
+
+    a,b,c,d
+
+    If the optional character is defined, the default "," character is not considered and must be explicitly defined.
+
+    E.g. ?body[;]* is NOT equivalent to ?body[,;]*
     """
 
     name: str
+    over: List[str] = field(
+        default_factory=lambda: [","]
+    )  # subsets of [",", ";", ":", "."]
+
+    def __post_init__(self):
+        if self.over is None:
+            self.over = [","]
 
     def __str__(self):
-        return f"?{self.name}*"
+        if self.over and self.over != [","]:
+            return f"?{self.name}[{''.join(self.over)}]*"
+        else:
+            return f"?{self.name}*"
 
 
 @dataclass

@@ -53,7 +53,7 @@ dollar = string("$")
 number = lexeme(regex(r"-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?")).map(float)
 string_part = regex(r'[^"\\]+')
 
-rule_name = lexeme(at >> regex(r"[A-Za-z\-]+"))
+rule_name = lexeme(at >> regex(r"[A-Za-z\-0-9]+"))
 rule_tokens = lexeme(regex(r"[A-Za-z0-9\-\{\},:;()]+"))
 
 
@@ -61,12 +61,29 @@ def pattern_rule():
     pattern_variable = lexeme(question_mark >> regex(r"[a-z]+[a-z0-9]*")).map(
         PatternVariable
     )
-    pattern_variable_collection = lexeme(
-        question_mark >> regex(r"[a-z]+[a-z0-9]*") << string("*")
-    ).map(PatternVariableCollection)
+
+    @generate
+    def pattern_variable_collection():
+        yield question_mark
+        name = yield regex(r"[a-z]+[a-z0-9]*")
+
+        option = yield lbrack.optional()
+
+        options = None
+        if option:
+            options = yield regex(r"[\.\;\:\,]+")
+            options = list(set(options))
+            yield rbrack
+
+        yield string("*")
+
+        if options:
+            return PatternVariableCollection(name, options)
+        else:
+            return PatternVariableCollection(name)
 
     pattern_rule_tokens = (
-        rule_tokens | pattern_variable_collection | pattern_variable
+        rule_tokens | lexeme(pattern_variable_collection) | pattern_variable
     ).at_least(1)
 
     pattern_rule_head = pattern_rule_tokens
@@ -147,3 +164,9 @@ class RuleParser:
 
     def parse(self, rule: str) -> RewritingRule:
         return rewriting_rule.parse(rule)
+
+    def parse_pattern(self, pattern: str):
+        return pattern_rule().parse(pattern)
+
+    def parse_skeleton(self, skeleton: str):
+        return skeleton_rule.parse(skeleton)
