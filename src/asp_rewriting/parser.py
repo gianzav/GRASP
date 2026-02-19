@@ -103,23 +103,23 @@ def pattern_rule():
 @generate
 def skeleton_rule():
     # reference to a pattern variable, e.g. $h
-    skeleton_reference_variable = lexeme(dollar >> regex(r"[a-z]+[a-z0-9]*")).map(
+    skeleton_reference_variable = (dollar >> regex(r"[a-z]+[a-z0-9]*")).map(
         SkeletonVariable
     )
 
     # extraction of the variables inside a match. E.g. with ?body, $body/vars is
     # expanded to the variables appearing inside whatever was matched in ?body
-    skeleton_reference_variable_vars = lexeme(
+    skeleton_reference_variable_vars = (
         dollar >> regex(r"[a-z]+[a-z0-9]*") << string("/vars")
     ).map(SkeletonVariableVarExpansion)
 
     # numeric variable that denotes a newly generated symbol, e.g. $1
-    skeleton_numeric_variable = lexeme(dollar >> regex(r"[0-9]+")).map(
+    skeleton_numeric_variable = (dollar >> regex(r"[0-9]+")).map(
         lambda name: NumberSkeletonVariable(name)
     )
 
     # named variable that denotes a newly generated symbol, e.g. $[val]
-    skeleton_new_named_variable = lexeme(
+    skeleton_new_named_variable = (
         dollar >> lbrack >> regex(r"[a-z]+[a-z0-9]*") << rbrack
     ).map(lambda name: NamedSkeletonVariable(name))
 
@@ -130,7 +130,14 @@ def skeleton_rule():
         | skeleton_new_named_variable
     )
 
-    skeleton_rule_tokens = (rule_tokens | skeleton_variable).at_least(1)
+    # Token without lexeme to preserve spacing
+    skeleton_token = regex(r"[A-Za-z0-9\-\{\},:;()]+")
+
+    # Capture whitespace as tokens
+    space = regex(r"\s+")
+
+    # Rule tokens with space - captures tokens interspersed with spaces
+    skeleton_rule_tokens = (skeleton_token | skeleton_variable | space).at_least(1)
 
     skeleton_rule_head = skeleton_rule_tokens
     skeleton_rule_body = skeleton_rule_tokens
@@ -145,7 +152,7 @@ def skeleton_rule():
 
     _skeleton = yield (skeleton_constraint | skeleton_fact | skeleton_full_rule)
 
-    when = yield (lexeme(string("when")) >> skeleton_variable).optional()
+    when = yield (lexeme(string("when")) >> lexeme(skeleton_variable)).optional()
 
     return Skeleton(_skeleton, when=when)
 
