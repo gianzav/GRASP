@@ -10,13 +10,12 @@ Generation of a custom parser based on a user-defined pattern.
 import parsy
 from asp_rewriting import model
 from dataclasses import dataclass
-from typing import Tuple, List, Optional
+from typing import List, Optional, Dict
 from asp_rewriting.parser import whitespace, RuleParser, lexeme, comma, semicolon
 
 
 type VarName = str
 type Symbol = str
-type Binding = Tuple[VarName, str]
 
 lparen = lexeme(parsy.string("("))
 rparen = lexeme(parsy.string(")"))
@@ -61,6 +60,12 @@ class Match:
 
     def bind_value(self, value: str):
         return Match(self.variable, value)
+
+
+type Bindings = Dict[
+    model.PatternVariable | model.PatternVariableCollection | model.SkeletonVariable,
+    str,
+]
 
 
 @dataclass
@@ -109,3 +114,20 @@ class RuleMatcher:
         parsed: model.Pattern = self.parser.parse_pattern(pattern)
         matcher = self._generate_pattern_matcher(parsed)
         return matcher.parse(rule)
+
+    def get_bindings(self, pattern: str, rule: str) -> Bindings:
+        matches = self.match(pattern, rule)
+        bindings = dict()
+        variable_matches = [m for m in matches if not isinstance(m, str)]
+
+        for match in variable_matches:
+            variable, value = match.variable, match.value
+
+            if variable in bindings and bindings[variable] != value:
+                raise ValueError(
+                    f"Ambiguous binding for variable {str(variable)} and values `{bindings[variable]}` `{value}`"
+                )
+
+            bindings[variable] = value
+
+        return bindings
