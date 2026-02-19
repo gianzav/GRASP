@@ -10,14 +10,13 @@ Generation of a custom parser based on a user-defined pattern.
 import parsy
 from asp_rewriting import model
 from dataclasses import dataclass
-from typing import Dict
+from typing import Tuple, List, Optional
 from asp_rewriting.parser import whitespace, RuleParser, lexeme, comma, semicolon
-import itertools
 
 
 type VarName = str
 type Symbol = str
-type Bindings = Dict[VarName, Symbol]
+type Binding = Tuple[VarName, str]
 
 lparen = lexeme(parsy.string("("))
 rparen = lexeme(parsy.string(")"))
@@ -48,46 +47,65 @@ def atom():
         return name
 
 
-def generate_token_matcher(token: model.PatternToken) -> parsy.Parser:
-    # match full atoms
-    if isinstance(token, model.PatternVariable):
-        return lexeme(atom | digits)
-    elif isinstance(token, model.PatternVariableCollection):
+@dataclass
+class Match:
+    variable: model.PatternVariable | model.PatternVariableCollection
+    value: Optional[str] = None
 
-        over_parser = parsy.alt(*(parsy.string(o) for o in token.over))
+    def __eq__(self, other):
+        return (
+            isinstance(other, Match)
+            and self.variable.name == other.variable.name
+            and self.value == other.value
+        )
 
-        return lexeme(lexeme(atom | digits) + over_parser.optional("")).concat()
-    else:  # str
-        return lexeme(parsy.string(token))
-
-
-def generate_pattern_matcher(pattern: model.Pattern) -> parsy.Parser:
-    parser = whitespace.map(lambda x: [])
-
-    skip = False
-    for token, next_token in itertools.zip_longest(
-        pattern.tokens, list(pattern.tokens)[1:]
-    ):
-        # match eagerly all the atoms up to the next token
-        if (
-            isinstance(token, model.PatternVariableCollection)
-            and next_token is not None
-        ):
-            this = generate_token_matcher(token)
-            next_ = generate_token_matcher(next_token)
-
-            # parse partially until the next parser is triggered
-            parser += this.until(next_).concat().map(lambda x: [x])
-        else:
-            parser += generate_token_matcher(token).map(lambda x: [x])
-    return parser
+    def bind_value(self, value: str):
+        return Match(self.variable, value)
 
 
 @dataclass
 class RuleMatcher:
     parser: RuleParser
 
-    def match(self, pattern: str, rule: str):
+    def _generate_token_matcher(self, token: model.PatternToken) -> parsy.Parser:
+        # match full atoms
+        if isinstance(token, model.PatternVariable):
+            return lexeme(atom | digits)
+        elif isinstance(token, model.PatternVariableCollection):
+
+            over_parser = parsy.alt(*(parsy.string(o) for o in token.over))
+
+            return lexeme(lexeme(atom | digits) + over_parser.optional("")).concat()
+        else:  # str
+            return lexeme(parsy.string(token))
+
+    def _generate_pattern_matcher(self, pattern: model.Pattern) -> parsy.Parser:
+        parser = whitespace.map(lambda x: [])
+
+        for token, next_token in zip(pattern.tokens, list(pattern.tokens)[1:] + [None]):
+            # match eagerly all the atoms up to the next token
+            if isinstance(token, model.PatternVariableCollection):
+                if next_token is not None:
+                    this = self._generate_token_matcher(token)
+                    next_ = self._generate_token_matcher(next_token)
+
+                    match = Match(token)
+                    # parse partially until the next parser is triggered
+                    parser += (
+                        this.until(next_)
+                        .concat()
+                        .map(lambda x, m=match: [m.bind_value(x)])
+                    )
+            elif isinstance(token, str):
+                parser += self._generate_token_matcher(token).map(lambda x: [x])
+            else:
+                match = Match(token)
+                parser += self._generate_token_matcher(token).map(
+                    lambda x, m=match: [m.bind_value(x)]
+                )
+        return parser
+
+    def match(self, pattern: str, rule: str) -> List[Match | str]:
         parsed: model.Pattern = self.parser.parse_pattern(pattern)
-        matcher = generate_pattern_matcher(parsed)
+        matcher = self._generate_pattern_matcher(parsed)
         return matcher.parse(rule)
