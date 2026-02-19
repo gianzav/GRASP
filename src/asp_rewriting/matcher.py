@@ -10,12 +10,12 @@ Generation of a custom parser based on a user-defined pattern.
 import parsy
 from asp_rewriting import model
 from dataclasses import dataclass
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, NewType
 from asp_rewriting.parser import whitespace, RuleParser, lexeme, comma, semicolon
+from asp_rewriting.model import SkeletonVariable
 
 
-type VarName = str
-type Symbol = str
+VarName = NewType("VarName", str)
 
 lparen = lexeme(parsy.string("("))
 rparen = lexeme(parsy.string(")"))
@@ -35,15 +35,17 @@ def atom():
         ((variable | atom) + (comma | semicolon)).many(), (variable | atom)
     ).combine(lambda args, arg: args + [arg])
 
+    not_ = yield parsy.string("not").optional("")
+    not_ = not_ + " " if not_ else ""
     name = yield predicate_symbol
 
     args = None
     args = yield parens(arglist).optional()
 
     if args:
-        return name + "".join(args)
+        return not_ + name + "".join(args)
     else:
-        return name
+        return not_ + name
 
 
 @dataclass
@@ -62,10 +64,28 @@ class Match:
         return Match(self.variable, value)
 
 
-type Bindings = Dict[
-    model.PatternVariable | model.PatternVariableCollection | model.SkeletonVariable,
-    str,
-]
+class Bindings:
+    def __init__(
+        self,
+        bindings: (
+            Dict[model.PatternVariable | model.PatternVariableCollection, str] | None
+        ) = None,
+    ):
+        self._bindings = bindings if bindings else dict()
+        self._names = {var.name: var for var in self._bindings}
+
+    def get_binding(self, key: VarName | SkeletonVariable):
+        if isinstance(key, str):  # VarName
+            _key = self._names[key]
+            return self._bindings[_key]
+        elif isinstance(key, SkeletonVariable):
+            _key = self._names[key.name]
+            return self._bindings[_key]
+        else:
+            raise TypeError(f"Can't access binding for value of type {type(key)}")
+
+    def __getitem__(self, key):
+        return self.get_binding(key)
 
 
 @dataclass
@@ -130,4 +150,4 @@ class RuleMatcher:
 
             bindings[variable] = value
 
-        return bindings
+        return Bindings(bindings)
