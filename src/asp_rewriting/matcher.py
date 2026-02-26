@@ -55,10 +55,13 @@ def atom():
         return model.Atom(name, positive=not_ is None)
 
 
+type MatchValue = model.Atom | List[model.Atom | str] | model.Integer | model.String
+
+
 @dataclass
 class Match:
     variable: model.PatternVariable | model.PatternVariableCollection
-    value: Optional[model.Atom | List[model.Atom | str]] = None
+    value: Optional[MatchValue] = None
 
     def __eq__(self, other):
         return (
@@ -67,7 +70,7 @@ class Match:
             and self.value == other.value
         )
 
-    def bind_value(self, value: model.Atom | List[model.Atom | str]):
+    def bind_value(self, value: MatchValue):
         return Match(self.variable, value)
 
 
@@ -75,7 +78,8 @@ class Bindings:
     def __init__(
         self,
         bindings: (
-            Dict[model.PatternVariable | model.PatternVariableCollection, str] | None
+            Dict[model.PatternVariable | model.PatternVariableCollection, MatchValue]
+            | None
         ) = None,
     ):
         self.counter = itertools.count()
@@ -108,6 +112,14 @@ class Bindings:
             return self._names[key.name]
         else:
             raise TypeError(f"Can't access binding for value of type {type(key)}")
+
+
+def tolist(x):
+    return [x]
+
+
+def flatten(l: list) -> list:
+    return list(itertools.chain.from_iterable(l))
 
 
 @dataclass
@@ -143,7 +155,7 @@ class RuleMatcher:
                     match = Match(token)
                     # parse partially until the next parser is triggered
                     parser += this.until(next_).map(
-                        lambda x, m=match: [m.bind_value(x)]
+                        lambda xs, m=match: [m.bind_value(flatten(xs))]
                     )
             elif isinstance(token, str):
                 parser += self._generate_token_matcher(token).map(lambda x: [x])
@@ -161,11 +173,16 @@ class RuleMatcher:
 
     def get_bindings(self, pattern: str, rule: str) -> Bindings:
         matches = self.match(pattern, rule)
-        bindings = dict()
+        bindings: Dict[
+            model.PatternVariable | model.PatternVariableCollection, MatchValue
+        ] = dict()
         variable_matches = [m for m in matches if not isinstance(m, str)]
 
         for match in variable_matches:
             variable, value = match.variable, match.value
+
+            if value is None:
+                raise ValueError(f"None was matched to {variable}")
 
             if variable in bindings and bindings[variable] != value:
                 raise ValueError(
