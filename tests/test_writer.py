@@ -1,8 +1,12 @@
 from asp_rewriting.model import Skeleton, SkeletonVariable as SV
-from asp_rewriting.matcher import Bindings
+from asp_rewriting.matcher import Bindings, atom
 from asp_rewriting.writer import RuleWriter
 from asp_rewriting.model import PatternVariable as PV, PatternVariableCollection as PVC
 from asp_rewriting.parser import RuleParser
+
+
+def _atom(s: str):
+    return atom.parse(s)
 
 
 def _test_write(skeleton: str, bindings: Bindings, expected: str):
@@ -23,7 +27,7 @@ def test_write_no_vars():
 
 def test_one_simple_var():
     skeleton = "$h :- b."
-    bindings: Bindings = Bindings({PV("h"): "a"})
+    bindings: Bindings = Bindings({PV("h"): _atom("a")})
     expected = "a :- b."
 
     _test_write(skeleton, bindings, expected)
@@ -31,7 +35,7 @@ def test_one_simple_var():
 
 def test_two_vars():
     skeleton = "$h :- $body."
-    bindings: Bindings = Bindings({PV("h"): "a", PV("body"): "b"})
+    bindings: Bindings = Bindings({PV("h"): _atom("a"), PV("body"): _atom("b")})
     expected = "a :- b."
 
     _test_write(skeleton, bindings, expected)
@@ -39,7 +43,9 @@ def test_two_vars():
 
 def test_catchall_body():
     skeleton = "$h :- $body."
-    bindings: Bindings = Bindings({PV("h"): "a", PVC("body"): "b,c,d"})
+    bindings: Bindings = Bindings(
+        {PV("h"): "a", PVC("body"): [_atom("b"), ",", _atom("c"), ",", _atom("d")]}
+    )
     expected = "a :- b,c,d."
 
     _test_write(skeleton, bindings, expected)
@@ -47,7 +53,12 @@ def test_catchall_body():
 
 def test_catchall_head():
     skeleton = "$h :- $body."
-    bindings: Bindings = Bindings({PVC("h"): "a;b;c", PVC("body"): "b,c,d"})
+    bindings: Bindings = Bindings(
+        {
+            PVC("h"): [_atom("a"), ";", _atom("b"), ";", _atom("c")],
+            PVC("body"): [_atom("b"), ",", _atom("c"), ",", _atom("d")],
+        }
+    )
     expected = "a;b;c :- b,c,d."
 
     _test_write(skeleton, bindings, expected)
@@ -56,23 +67,27 @@ def test_catchall_head():
 def test_rewrite_head_1():
     skeleton = "$h :- $c, $body, not $h'."
     bindings: Bindings = Bindings(
-        {PV("h"): "head(X)", PV("c"): "cond(X)", PVC("body"): "b, c, d"}
+        {
+            PV("h"): _atom("head(X)"),
+            PV("c"): _atom("cond(X)"),
+            PVC("body"): [_atom("b"), ",", _atom("c"), ",", _atom("d")],
+        }
     )
-    expected = "head(X) :- cond(X), b, c, d, not head'(X)."
+    expected = "head(X) :- cond(X), b,c,d, not head'(X)."
 
     _test_write(skeleton, bindings, expected)
 
 
 def test_when_empty_match():
     skeleton = "{$rest} :- $body. when $rest"
-    bindings = Bindings({PVC("rest"): "", PVC("body"): "p"})
+    bindings = Bindings({PVC("rest"): [], PVC("body"): [_atom("p")]})
     expected = ""
     _test_write(skeleton, bindings, expected)
 
 
 def test_when_nonempty_match():
     skeleton = "{$rest} :- $body. when $rest"
-    bindings = Bindings({PVC("rest"): "q", PVC("body"): "p"})
+    bindings = Bindings({PVC("rest"): [_atom("q")], PVC("body"): [_atom("p")]})
     expected = "{q} :- p."
 
     _test_write(skeleton, bindings, expected)
@@ -114,13 +129,13 @@ def test_vars_expansion():
     skeleton = "$1($body/vars) :- $l{$h1 : $c1; $rest}$u, $body."
     bindings = Bindings(
         {
-            PVC("body"): "p(X), q(Y)",
+            PVC("body"): [_atom("p(X)"), ",", _atom("q(Y)")],
             PV("l"): "1",
-            PVC("h1"): "a",
-            PVC("c1"): "b",
-            PVC("rest"): "",
+            PVC("h1"): [_atom("a")],
+            PVC("c1"): [_atom("b")],
+            PVC("rest"): [],
             PV("u"): "33",
         }
     )
-    expected = "_0(X,Y) :- 1{a : b; }33, p(X), q(Y)."
+    expected = "_0(X,Y) :- 1{a : b; }33, p(X),q(Y)."
     _test_write(skeleton, bindings, expected)
