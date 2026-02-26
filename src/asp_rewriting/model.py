@@ -109,6 +109,49 @@ class Variable(Term):
             return LessThan(self, other)
 
 
+@dataclass
+class Integer(Term):
+    _value: int
+
+    @property
+    def name(self) -> str:
+        return str(self._value)
+
+    def to_asp(self) -> str:
+        return str(self._value)
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Integer) and self._value == other._value
+
+    def __gt__(self, other) -> bool:
+        if isinstance(other, Integer):
+            return self._value > other._value
+        raise TypeError(f"Can't compare Integer with value of type {type(other)}")
+
+
+@dataclass
+class String(Term):
+    _value: str
+
+    @property
+    def name(self) -> str:
+        return str(self._value)
+
+    def to_asp(self) -> str:
+        return str(self._value)
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, String) and self._value == other._value
+
+    def __gt__(self, other) -> bool:
+        if isinstance(other, String):
+            return self._value > other._value
+        raise TypeError(f"Can't compare String with value of type {type(other)}")
+
+
+type AtomArg = Term | int | str
+
+
 @dataclass(init=False)
 class Atom(Term):
     _name: str
@@ -127,7 +170,7 @@ class Atom(Term):
     def __init__(
         self,
         name,
-        args: Sequence[Term] | Sequence[Term | str] | None = None,
+        args: Sequence[AtomArg] | Sequence[AtomArg | str] | None = None,
         positive=True,
     ):
 
@@ -136,7 +179,7 @@ class Atom(Term):
         self._separators: List[Literal[";"] | Literal[","]] = []
 
         if args and all(isinstance(a, Term) for a in args):
-            self.args = args
+            self.args = [self._convert_arg(a) for a in args]
             self._separators = ["," for _ in range(len(self.args) - 1)]
         elif args:
             self.args = []
@@ -151,23 +194,21 @@ class Atom(Term):
                         assert isinstance(a, str)
                         self._separators.append(a)
                 else:
-                    if isinstance(a, Term):
-                        self.args.append(a)
+                    if isinstance(a, (Term | int | str)):
+                        self.args.append(self._convert_arg(a))
                     else:
                         raise ValueError(f"Expected term, found {a}")
                 expect_separator = not expect_separator
         else:
             self.args = []
 
-        def convert(x):
-            if isinstance(x, int):
-                return Atom(str(x), [])
-            elif isinstance(x, str):
-                return Atom(f'"{x}"', [])
-            else:
-                return x
-
-        self.args = [convert(a) for a in self.args]
+    def _convert_arg(self, x: int | str | Term) -> Term:
+        if isinstance(x, int):
+            return Integer(x)
+        elif isinstance(x, str):
+            return String(x)
+        else:
+            return x
 
     def to_asp(self) -> str:
         _not = "" if self._positive else "not "
