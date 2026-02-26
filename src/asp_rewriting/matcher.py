@@ -86,11 +86,11 @@ class Bindings:
         self._bindings = bindings if bindings else dict()
         self._names = {var.name: var for var in self._bindings}
         # bindings for fresh skeleton variables
-        self._fresh_bindings = collections.defaultdict(
+        self._fresh_bindings: Dict[str, str] = collections.defaultdict(
             lambda: "_" + str(next(self.counter))
         )
 
-    def get_binding(self, key: VarName | SkeletonVariable):
+    def get_binding(self, key: VarName | SkeletonVariable) -> MatchValue | str:
         if isinstance(key, str):  # VarName
             _key = self._names[key]
             return self._bindings[_key]
@@ -102,10 +102,12 @@ class Bindings:
         else:
             raise TypeError(f"Can't access binding for value of type {type(key)}")
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> MatchValue | str:
         return self.get_binding(key)
 
-    def get_pattern_variable(self, key: VarName | SkeletonVariable):
+    def get_pattern_variable(
+        self, key: VarName | SkeletonVariable
+    ) -> model.PatternVariable | model.PatternVariableCollection:
         if isinstance(key, str):
             return self._names[key]
         elif isinstance(key, SkeletonVariable):
