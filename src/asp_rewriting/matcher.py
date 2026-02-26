@@ -12,7 +12,13 @@ from asp_rewriting import model
 from dataclasses import dataclass
 from typing import List, Optional, Dict, NewType
 from asp_rewriting.parser import whitespace, RuleParser, lexeme, comma, semicolon
-from asp_rewriting.model import SkeletonVariable
+from asp_rewriting.model import (
+    SkeletonVariable,
+    NumberSkeletonVariable,
+    NamedSkeletonVariable,
+)
+import collections
+import itertools
 
 
 VarName = NewType("VarName", str)
@@ -20,38 +26,39 @@ VarName = NewType("VarName", str)
 lparen = lexeme(parsy.string("("))
 rparen = lexeme(parsy.string(")"))
 
-variable = lexeme(parsy.regex(r"[_A-Z]+[A-Za-z0-9_']*"))
+variable = lexeme(parsy.regex(r"[_A-Z]+[A-Za-z0-9_']*")).map(model.Variable)
 predicate_symbol = lexeme(parsy.regex(r"[a-z]+[A-Za-z0-9'_]*"))
 digits = parsy.regex(r"[0-9]+")
 
 
 @parsy.generate
 def atom():
-    parens = lambda p: parsy.seq(lparen, p, rparen).combine(
-        lambda l, a, r: [l] + a + [r]
-    )
+    parens = lambda p: lparen >> p << rparen
 
+    withcomma = parsy.seq((variable | atom), (comma | semicolon)).combine(
+        lambda a, c: [a, c]
+    )
     arglist = parsy.seq(
-        ((variable | atom) + (comma | semicolon)).many(), (variable | atom)
+        (withcomma).many().map(lambda x: list(itertools.chain.from_iterable(x))),
+        (variable | atom),
     ).combine(lambda args, arg: args + [arg])
 
-    not_ = yield parsy.string("not").optional("")
-    not_ = not_ + " " if not_ else ""
+    not_ = yield parsy.string("not").optional()
     name = yield predicate_symbol
 
     args = None
     args = yield parens(arglist).optional()
 
     if args:
-        return not_ + name + "".join(args)
+        return model.Atom(name, args, positive=not_ is None)
     else:
-        return not_ + name
+        return model.Atom(name, positive=not_ is None)
 
 
 @dataclass
 class Match:
     variable: model.PatternVariable | model.PatternVariableCollection
-    value: Optional[str] = None
+    value: Optional[model.Atom | List[model.Atom | str]] = None
 
     def __eq__(self, other):
         return (
@@ -60,7 +67,7 @@ class Match:
             and self.value == other.value
         )
 
-    def bind_value(self, value: str):
+    def bind_value(self, value: model.Atom | List[model.Atom | str]):
         return Match(self.variable, value)
 
 
@@ -71,13 +78,20 @@ class Bindings:
             Dict[model.PatternVariable | model.PatternVariableCollection, str] | None
         ) = None,
     ):
+        self.counter = itertools.count()
         self._bindings = bindings if bindings else dict()
         self._names = {var.name: var for var in self._bindings}
+        # bindings for fresh skeleton variables
+        self._fresh_bindings = collections.defaultdict(
+            lambda: "_" + str(next(self.counter))
+        )
 
     def get_binding(self, key: VarName | SkeletonVariable):
         if isinstance(key, str):  # VarName
             _key = self._names[key]
             return self._bindings[_key]
+        elif isinstance(key, (NamedSkeletonVariable, NumberSkeletonVariable)):
+            return self._fresh_bindings[key.name]
         elif isinstance(key, SkeletonVariable):
             _key = self._names[key.name]
             return self._bindings[_key]
@@ -86,6 +100,14 @@ class Bindings:
 
     def __getitem__(self, key):
         return self.get_binding(key)
+
+    def get_pattern_variable(self, key: VarName | SkeletonVariable):
+        if isinstance(key, str):
+            return self._names[key]
+        elif isinstance(key, SkeletonVariable):
+            return self._names[key.name]
+        else:
+            raise TypeError(f"Can't access binding for value of type {type(key)}")
 
 
 @dataclass
@@ -100,7 +122,11 @@ class RuleMatcher:
 
             over_parser = parsy.alt(*(parsy.string(o) for o in token.over))
 
-            return lexeme(lexeme(atom | digits) + over_parser.optional("")).concat()
+            return lexeme(
+                parsy.seq(lexeme(atom | digits), over_parser.optional()).combine(
+                    lambda x, y: [x] if y is None else [x, y]
+                )
+            )
         else:  # str
             return lexeme(parsy.string(token))
 
@@ -116,10 +142,8 @@ class RuleMatcher:
 
                     match = Match(token)
                     # parse partially until the next parser is triggered
-                    parser += (
-                        this.until(next_)
-                        .concat()
-                        .map(lambda x, m=match: [m.bind_value(x)])
+                    parser += this.until(next_).map(
+                        lambda x, m=match: [m.bind_value(x)]
                     )
             elif isinstance(token, str):
                 parser += self._generate_token_matcher(token).map(lambda x: [x])
