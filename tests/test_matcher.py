@@ -1,10 +1,14 @@
-from asp_rewriting.matcher import RuleMatcher, Match as M
+from asp_rewriting.matcher import RuleMatcher, Match as M, atom
 from asp_rewriting.parser import RuleParser
 
 
 from asp_rewriting.model import PatternVariable as PV
 from asp_rewriting.model import PatternVariableCollection as PVC
 from asp_rewriting.model import PatternVariableCollection as PVC
+
+
+def _atom(s: str):
+    return atom.parse(s)
 
 
 def _test_match(pattern, rule, expected):
@@ -25,7 +29,7 @@ def test_match_exact():
 def test_match_atom_no_arguments():
     pattern = "?head :- b."
     rule = "a :- b."
-    expected = [M(PV("head"), "a"), ":-", "b", "."]
+    expected = [M(PV("head"), _atom("a")), ":-", "b", "."]
 
     _test_match(pattern, rule, expected)
 
@@ -33,7 +37,7 @@ def test_match_atom_no_arguments():
 def test_match_atom_with_arguments():
     pattern = "?head :- b."
     rule = "a(p,X,Y) :- b."
-    expected = [M(PV("head"), "a(p,X,Y)"), ":-", "b", "."]
+    expected = [M(PV("head"), _atom("a(p,X,Y)")), ":-", "b", "."]
 
     _test_match(pattern, rule, expected)
 
@@ -41,7 +45,12 @@ def test_match_atom_with_arguments():
 def test_match_multiple():
     pattern = "a :- ?body*."
     rule = "a :- b,c,d."
-    expected = ["a", ":-", M(PVC("body"), "b,c,d"), "."]
+    expected = [
+        "a",
+        ":-",
+        M(PVC("body"), [_atom("b"), ",", _atom("c"), ",", _atom("d")]),
+        ".",
+    ]
 
     _test_match(pattern, rule, expected)
 
