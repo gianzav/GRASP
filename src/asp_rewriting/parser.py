@@ -102,32 +102,43 @@ def pattern_rule():
 
 @generate
 def skeleton_rule():
+
+    # Non-lexeme bracket versions to preserve spacing in skeleton rules
+    skeleton_lbrack = string("[")
+    skeleton_rbrack = string("]")
+
+    # Extension that is added after the variable is expanded in the rewriting
+    variable_extension = regex(r"[\_\']+[a-z0-9\'\_A-Z]*")
+
     # reference to a pattern variable, e.g. $h
-    skeleton_reference_variable = (dollar >> regex(r"[a-z]+[a-z0-9]*")).map(
-        SkeletonVariable
-    )
+    skeleton_reference_variable = seq(
+        dollar >> regex(r"[a-z]+[a-z0-9]*"), variable_extension.optional("")
+    ).combine(lambda var, ext: SkeletonVariable(var, ext))
 
     # extraction of the variables inside a match. E.g. with ?body, $body/vars is
     # expanded to the variables appearing inside whatever was matched in ?body
     skeleton_reference_variable_vars = (
-        dollar >> regex(r"[a-z]+[a-z0-9]*") << string("/vars")
-    ).map(SkeletonVariableVarExpansion)
-
-    # numeric variable that denotes a newly generated symbol, e.g. $1
-    skeleton_numeric_variable = (dollar >> regex(r"[0-9]+")).map(
-        lambda name: NumberSkeletonVariable(name)
+        dollar
+        >> regex(r"[a-z]+[a-z0-9]*")
+        << string("/vars").map(SkeletonVariableVarExpansion)
     )
 
+    # numeric variable that denotes a newly generated symbol, e.g. $1
+    skeleton_numeric_variable = seq(
+        dollar >> regex(r"[0-9]+"), variable_extension.optional("")
+    ).combine(lambda name, ext: NumberSkeletonVariable(name, ext))
+
     # named variable that denotes a newly generated symbol, e.g. $[val]
-    skeleton_new_named_variable = (
-        dollar >> lbrack >> regex(r"[a-z]+[a-z0-9]*") << rbrack
-    ).map(lambda name: NamedSkeletonVariable(name))
+    skeleton_new_named_variable = seq(
+        dollar >> skeleton_lbrack >> regex(r"[a-z]+[a-z0-9]*") << skeleton_rbrack,
+        variable_extension.optional(""),
+    ).combine(lambda name, ext: NamedSkeletonVariable(name, ext))
 
     skeleton_variable = (
-        skeleton_reference_variable_vars
+        skeleton_new_named_variable
+        | skeleton_reference_variable_vars
         | skeleton_reference_variable
         | skeleton_numeric_variable
-        | skeleton_new_named_variable
     )
 
     # Token without lexeme to preserve spacing
@@ -137,7 +148,7 @@ def skeleton_rule():
     space = regex(r"\s+")
 
     # Rule tokens with space - captures tokens interspersed with spaces
-    skeleton_rule_tokens = (skeleton_token | skeleton_variable | space).at_least(1)
+    skeleton_rule_tokens = (skeleton_variable | skeleton_token | space).at_least(1)
 
     skeleton_rule_head = skeleton_rule_tokens
     skeleton_rule_body = skeleton_rule_tokens
