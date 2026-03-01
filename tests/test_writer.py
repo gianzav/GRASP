@@ -139,3 +139,19 @@ def test_vars_expansion():
     )
     expected = "_0(X,Y) :- 1{a : b; }33, p(X),q(Y)."
     _test_write(skeleton, bindings, expected)
+
+
+def test_extension_on_collection():
+    skeleton = "h :- $body'."
+    bindings = Bindings({PVC("body"): [_atom("p"), ",", _atom("q"), ",", _atom("r")]})
+    expected = "h :- p',q',r'."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_extension_on_variable_expansion_collection():
+    skeleton = "h :- f($body/vars')."
+    bindings = Bindings(
+        {PVC("body"): [_atom("p(X)"), ",", _atom("q(Y)"), ",", _atom("r(Z)")]}
+    )
+    expected = "h :- f(X',Y',Z')."
+    _test_write(skeleton, bindings, expected)
