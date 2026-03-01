@@ -117,9 +117,10 @@ def skeleton_rule():
 
     # extraction of the variables inside a match. E.g. with ?body, $body/vars is
     # expanded to the variables appearing inside whatever was matched in ?body
-    skeleton_reference_variable_vars = (
-        dollar >> regex(r"[a-z]+[a-z0-9]*") << string("/vars")
-    ).map(SkeletonVariableVarExpansion)
+    skeleton_reference_variable_vars = seq(
+        dollar >> regex(r"[a-z]+[a-z0-9]*") << string("/vars"),
+        variable_extension.optional(""),
+    ).combine(lambda var, ext: SkeletonVariableVarExpansion(var, ext))
 
     # numeric variable that denotes a newly generated symbol, e.g. $1
     skeleton_numeric_variable = seq(
