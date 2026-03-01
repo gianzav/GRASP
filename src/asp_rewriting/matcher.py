@@ -168,9 +168,11 @@ class RuleMatcher:
                 )
         return parser
 
-    def match(self, pattern: str, rule: str) -> List[Match | str]:
-        parsed: model.Pattern = self.parser.parse_pattern(pattern)
-        matcher = self._generate_pattern_matcher(parsed)
+    def match(self, pattern: str | model.Pattern, rule: str) -> List[Match | str]:
+        if isinstance(pattern, str):
+            matcher = self._generate_pattern_matcher(self.parser.parse_pattern(pattern))
+        else:
+            matcher = self._generate_pattern_matcher(pattern)
         return matcher.parse(rule)
 
     def get_bindings(self, pattern: str, rule: str) -> Bindings:
