@@ -1,5 +1,8 @@
-from asp_rewriting.parser import RuleParser
+from asp_rewriting.parser import RuleParser, IndentationError
 from pytest import fixture
+import pytest
+import parsy
+import textwrap
 
 
 @fixture
@@ -7,46 +10,103 @@ def parser():
     return RuleParser()
 
 
+def oneline(x):
+    return x.replace("\n", "").replace("\t", " ")
+
+
 def test_parse_exact_rule(parser):
     rule = "@rule-name a :- b. -> a."
-    parser.parse(rule)
+    parsed = parser.parse(rule)
+    assert oneline(str(parsed)) == "@rule-name a:-b. -> a."
 
 
 def test_parse_variable_in_pattern(parser):
     rule = "@rule-name ?a :- b. -> a."
-    parser.parse(rule)
+    parsed = parser.parse(rule)
+    assert oneline(str(parsed)) == "@rule-name ?a:-b. -> a."
 
 
 def test_parse_variable_collection_in_pattern(parser):
     rule = "@rule-name ?a :- ?body*. -> a."
-    parser.parse(rule)
+    parsed = parser.parse(rule)
+    assert oneline(str(parsed)) == "@rule-name ?a:-?body*. -> a."
 
 
 def test_skeleton_variables(parser):
     rule = "@rule-name ?a :- ?b, ?body*. -> $[new] :- $b, $1."
-    parser.parse(rule)
+    parsed = parser.parse(rule)
+    assert oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> $[new] :- $b, $1."
 
 
 def test_multiple_skeletons(parser):
-    rule = """\
+    rule = textwrap.dedent(
+        """\
     @rule-name ?a :- ?b, ?body*. -> 
         p :- $a.
         $[new] :- $b, $1.
     """
-    parser.parse(rule)
+    )
+    parsed = parser.parse(rule)
+    assert (
+        oneline(str(parsed))
+        == "@rule-name ?a:-?b,?body*. -> p :- $a. $[new] :- $b, $1."
+    )
 
 
 def test_skeleton_variable_vars(parser):
-    rule = """\
+    rule = textwrap.dedent(
+        """\
     @rule-name ?a :- ?b, ?body*. -> 
         p($body/vars) :- q.
     """
-    parser.parse(rule)
+    )
+    parsed = parser.parse(rule)
+    assert oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> p($body/vars) :- q."
 
 
 def test_when(parser):
-    rule = """\
+    rule = textwrap.dedent(
+        """\
     @rule-name ?a :- ?b, ?body*. -> 
         {p} :- $body. when $body
     """
+    )
+    parsed = parser.parse(rule)
+    assert (
+        oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body"
+    )
+
+
+def test_parse_multiline_indent_success(parser):
+    rule = textwrap.dedent(
+        """\
+    @rule-name ?a :- ?b, ?body*. ->
+        {p} :- $body.
+    """
+    )
+    parsed = parser.parse(rule)
+    assert oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> {p} :- $body."
+
+
+def test_parse_multiline_indent_fail(parser):
+    rule = textwrap.dedent(
+        """\
+    @rule-name ?a :- ?b, ?body*. -> 
+        a. -> b.
+            b. -> c.
+    """
+    )
+    with pytest.raises(parsy.ParseError):
+        parser.parse(rule)
+
+
+def test_parse_plus(parser):
+    rule = textwrap.dedent(
+        """\
+    @lower-bound ?h* :- ?l{?rest*}?u, ?body*. ->
+        $h :- $1($body/vars), not $2($body/vars), $body.
+        $1($body/vars) :- $l{$rest}, $body.
+        $2($body/vars) :- $u+1{$rest}, $body.
+    """
+    )
     parser.parse(rule)
