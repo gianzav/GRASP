@@ -26,8 +26,14 @@ def repl(ctx: Context):
 
     while True:
         inp = input("::> ").strip()
-        if inp != "":
-            evaluate(inp, ctx)
+        match inp:
+            case "":
+                pass
+            case ":rules":
+                for rule in ctx.rules:
+                    print(str(rule))
+            case _:
+                evaluate(inp, ctx)
 
 
 def evaluate(input_, ctx: Context):
@@ -86,9 +92,9 @@ def main():
 
     if args.filename:
         with open(args.filename, "r") as f:
-            code = f.readlines()
-            for line in code:
-                evaluate(line, ctx)
+            rules = f.read().split("\n\n")
+            for rule in rules:
+                evaluate(rule, ctx)
         if args.interactive:
             repl(ctx)
     else:
