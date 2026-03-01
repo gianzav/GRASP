@@ -14,6 +14,7 @@ from asp_rewriting.model import (
     NamedSkeletonVariable,
 )
 from asp_rewriting import model
+import copy
 
 
 def extend_token(token: SkeletonVariable, value: str) -> str:
@@ -42,7 +43,6 @@ class RuleWriter:
                 return ""
 
         for token in skeleton.tokens:
-
             if isinstance(token, str):
                 result += token
             elif isinstance(token, (NumberSkeletonVariable, NamedSkeletonVariable)):
@@ -52,22 +52,23 @@ class RuleWriter:
                 value = bindings[token]
                 var = bindings.get_pattern_variable(token)
 
-                # Write the bound value of the skeleton variable, applying its extension
-                if isinstance(var, PatternVariable):
-                    result += extend_token(token, str(value))
-                elif isinstance(var, PatternVariableCollection):
-                    # TODO: If the pattern variable that is referenced by the skeleton variable is collecting multiple atoms,
-                    # the extension is applied to each individual atom in the collection
-                    if token.extension != "":
-                        raise NotImplementedError(
-                            f"Variable extension not implemented for {type(var)}"
-                        )
-                    if isinstance(token, SkeletonVariableVarExpansion):
+                match (token, var):
+                    case (SkeletonVariableVarExpansion(), PatternVariable()):
                         if isinstance(value, model.Atom):
                             result += ",".join(str(v) for v in value.variables)
-                        elif isinstance(value, list):
+                        elif isinstance(value, model.Variable):
+                            result += str(value)
+                        else:
+                            raise NotImplementedError(
+                                f"Variable extension not implemented for {type(value)}"
+                            )
+                    case (SkeletonVariableVarExpansion(), PatternVariableCollection()):
+                        # TODO: If the pattern variable that is referenced by the skeleton variable is collecting multiple atoms,
+                        # the extension is applied to each individual atom in the collection
+
+                        if isinstance(value, list):
                             result += ",".join(
-                                str(v)
+                                extend_token(token, str(v))
                                 for atom in value
                                 if isinstance(atom, model.Atom)
                                 for v in atom.variables
@@ -76,16 +77,33 @@ class RuleWriter:
                             raise NotImplementedError(
                                 f"Variable expansion not implemented for {type(value)}"
                             )
-                    else:
+                    case (SkeletonVariable(), PatternVariableCollection()):
+                        # if token.extension != "":
+                        #     raise NotImplementedError(
+                        #         f"Variable extension not implemented for {type(var)}"
+                        #     )
+
                         assert isinstance(
                             value, list
                         ), f"Binding is of type {type(value)}"
                         assert all(isinstance(x, (model.Atom, str)) for x in value)
 
-                        result += "".join(str(x) for x in value)
-                else:
-                    raise NotImplementedError(
-                        f"Rewriting not implemented for {type(var)}"
-                    )
+                        extended = []
+                        for t in value:
+                            if isinstance(t, model.Term):
+                                e = copy.deepcopy(t)
+                                e.name = extend_token(token, e.name)
+                                extended.append(e)
+                            else:
+                                extended.append(t)
+
+                        result += "".join(str(e) for e in extended)
+                    case (_, PatternVariable()):
+                        # Write the bound value of the skeleton variable, applying its extension
+                        result += extend_token(token, str(value))
+                    case _:
+                        raise NotImplementedError(
+                            f"Rewriting not implemented for {type(var)}"
+                        )
 
         return result
