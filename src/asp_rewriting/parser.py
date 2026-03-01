@@ -30,7 +30,11 @@ from asp_rewriting.model import *
 
 # Utilities
 whitespace = regex(r"\s*")
+whitespace_no_nl = regex(r"[ \t]*")  # Spaces and tabs only, no newlines
 lexeme = lambda p: p << whitespace
+skeleton_lexeme = (
+    lambda p: p << whitespace_no_nl
+)  # For skeleton rules to preserve newlines
 
 # Punctuation
 lbrace = lexeme(string("{"))
@@ -42,11 +46,14 @@ comma = lexeme(string(","))
 at = string("@")
 semicolon = lexeme(string(";"))
 dot = lexeme(string("."))
-arrow = lexeme(string("->"))
 impl = lexeme(string(":-"))
 newline = lexeme(string("\n"))
 question_mark = string("?")
 dollar = string("$")
+
+# Skeleton-specific punctuation (preserves newlines)
+skeleton_dot = skeleton_lexeme(string("."))
+skeleton_impl = skeleton_lexeme(string(":-"))
 
 # Primitives
 
@@ -152,27 +159,45 @@ def skeleton_rule():
     skeleton_rule_head = skeleton_rule_tokens
     skeleton_rule_body = skeleton_rule_tokens
 
-    skeleton_fact = seq(skeleton_rule_head, dot).combine(lambda x, y: x + [y])
-    skeleton_constraint = seq((impl >> skeleton_rule_body), dot).combine(
-        lambda x, y: x + [y]
-    )
-    skeleton_full_rule = (skeleton_rule_head >> impl) + seq(
-        skeleton_rule_body, dot
+    skeleton_fact = seq(skeleton_rule_head, skeleton_dot).combine(lambda x, y: x + [y])
+    skeleton_constraint = seq(
+        (skeleton_impl >> skeleton_rule_body), skeleton_dot
+    ).combine(lambda x, y: x + [y])
+    skeleton_full_rule = (skeleton_rule_head >> skeleton_impl) + seq(
+        skeleton_rule_body, skeleton_dot
     ).combine(lambda x, y: x + [y])
 
     _skeleton = yield (skeleton_constraint | skeleton_fact | skeleton_full_rule)
 
-    when = yield (lexeme(string("when")) >> lexeme(skeleton_variable)).optional()
+    when = yield (
+        skeleton_lexeme(string("when")) >> skeleton_lexeme(skeleton_variable)
+    ).optional()
 
     return Skeleton(_skeleton, when=when)
+
+
+@generate
+def indent():
+    try:
+        yield string("\t") | string(" ").times(4)
+    except:
+        return fail("Expected indentation")
 
 
 @generate
 def rewriting_rule():
     name = yield whitespace >> rule_name
     pattern = yield pattern_rule()
+    arrow = whitespace << string("->") >> string(" ").many()
     yield arrow
-    skeletons = yield skeleton_rule.at_least(1)
+
+    nl = yield string("\n").optional()
+    if nl:
+        skeletons = yield (indent >> skeleton_rule << string("\n").optional()).at_least(
+            1
+        )
+    else:
+        skeletons = yield skeleton_rule.at_least(1)
     return RewritingRule(name, pattern, skeletons)
 
 
@@ -187,3 +212,7 @@ class RuleParser:
 
     def parse_skeleton(self, skeleton: str):
         return skeleton_rule.parse(skeleton)
+
+
+class IndentationError(Exception):
+    pass
