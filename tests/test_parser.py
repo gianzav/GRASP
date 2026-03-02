@@ -1,4 +1,4 @@
-from asp_rewriting.parser import RuleParser, IndentationError
+from asp_rewriting.parser import RuleParser, IndentationError, Pattern, PatternVariable
 from pytest import fixture
 import pytest
 import parsy
@@ -110,3 +110,10 @@ def test_parse_plus(parser):
     """
     )
     parser.parse(rule)
+
+
+def test_parse_plus_pattern(parser):
+    pattern = r"s(?x+?y)."
+    assert parser.parse_pattern(pattern) == Pattern(
+        ["s(", PatternVariable("x"), "+", PatternVariable("y"), ")", "."]
+    )
