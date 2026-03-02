@@ -92,7 +92,14 @@ def main():
 
     if args.filename:
         with open(args.filename, "r") as f:
-            rules = f.read().split("\n\n")
+            # bad pre-processing to eliminate comments
+            lines = f.readlines()
+            code = ""
+            for line in lines:
+                before, sep, after = line.partition("%")
+                code += before
+
+            rules = code.split("\n\n")
             for rule in rules:
                 evaluate(rule, ctx)
         if args.interactive:
