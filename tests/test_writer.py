@@ -96,7 +96,7 @@ def test_when_nonempty_match():
 def test_fresh_numbered_variable():
     skeleton = "$1 :- $33."
     bindings = Bindings()
-    expected = "_0 :- _1."
+    expected = "_new0 :- _new1."
 
     _test_write(skeleton, bindings, expected)
 
@@ -104,7 +104,7 @@ def test_fresh_numbered_variable():
 def test_fresh_numbered_variable_same_variable_twice():
     skeleton = "$1 :- $1."
     bindings = Bindings()
-    expected = "_0 :- _0."
+    expected = "_new0 :- _new0."
 
     _test_write(skeleton, bindings, expected)
 
@@ -112,7 +112,7 @@ def test_fresh_numbered_variable_same_variable_twice():
 def test_fresh_named_variable():
     skeleton = "$[a] :- $[a]."
     bindings = Bindings()
-    expected = "_0 :- _0."
+    expected = "_new0 :- _new0."
 
     _test_write(skeleton, bindings, expected)
 
@@ -120,7 +120,7 @@ def test_fresh_named_variable():
 def test_fresh_named_variable_extension():
     skeleton = "$[a] :- $[a]'."
     bindings = Bindings()
-    expected = "_0 :- _0'."
+    expected = "_new0 :- _new0'."
 
     _test_write(skeleton, bindings, expected)
 
@@ -137,7 +137,7 @@ def test_vars_expansion():
             PV("u"): "33",
         }
     )
-    expected = "_0(X,Y) :- 1{a : b; }33, p(X),q(Y)."
+    expected = "_new0(X,Y) :- 1{a : b; }33, p(X),q(Y)."
     _test_write(skeleton, bindings, expected)
 
 

@@ -113,7 +113,7 @@ class Bindings:
         self._names = {var.name: var for var in self._bindings}
         # bindings for fresh skeleton variables
         self._fresh_bindings: Dict[str, str] = collections.defaultdict(
-            lambda: "_" + str(next(self.counter))
+            lambda: "_new" + str(next(self.counter))
         )
 
     def get_binding(self, key: VarName | SkeletonVariable) -> MatchValue | str:
