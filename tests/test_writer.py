@@ -111,7 +111,7 @@ def test_when_not():
 
 def test_when_mixed():
     skeleton = "{whoops} :- $body. when $body, not $rest"
-    bindings = bindings({PVC("rest"): [], PVC("body"): [_atom("p")]})
+    bindings = Bindings({PVC("rest"): [], PVC("body"): [_atom("p")]})
     expected = "{whoops} :- p."
 
     _test_write(skeleton, bindings, expected)
@@ -119,7 +119,7 @@ def test_when_mixed():
 
 def test_when_variable_expansion():
     skeleton = "{$rest} :- $body. when $body/vars"
-    bindings = bindings({PVC("rest"): [_atom("q")], PVC("body"): [_atom("p(X)")]})
+    bindings = Bindings({PVC("rest"): [_atom("q")], PVC("body"): [_atom("p(X)")]})
     expected = "{q} :- p(X)."
 
     _test_write(skeleton, bindings, expected)

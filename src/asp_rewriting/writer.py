@@ -27,6 +27,48 @@ def extend_token(token: SkeletonVariable, value: str) -> str:
         return value + token.extension
 
 
+# TODO: refactor this ugly ugly function
+def condition_satisfied(condition: model.SkeletonCondition, bindings: Bindings) -> bool:
+    value = bindings[condition.variable]
+
+    if not value:
+        return not condition._positive
+
+    if isinstance(condition.variable, SkeletonVariableVarExpansion):
+        if isinstance(value, list):
+            no_variable_in_atoms = all(
+                len(atom.variables) == 0
+                for atom in value
+                if isinstance(atom, model.Atom)
+            )
+            no_element_is_variable = all(
+                not isinstance(x, model.Variable) for x in value
+            )
+
+            if no_variable_in_atoms and no_element_is_variable and condition._positive:
+                return False
+        else:
+            has_no_variables = (
+                isinstance(value, model.Atom) and len(value.variables) == 0
+            )
+            is_not_variable = not isinstance(value, model.Variable)
+
+            if has_no_variables and is_not_variable and condition._positive:
+                return False
+    return True
+
+
+def when_satisfied(
+    conditions: List[model.SkeletonCondition], bindings: Bindings, rule_name=""
+) -> bool:
+    try:
+        return all(condition_satisfied(condition, bindings) for condition in conditions)
+    except KeyError as e:
+        raise UnboundVariableError(
+            f"Variable {str(e.args[0])} unbound in rule '{rule_name}'"
+        )
+
+
 class UnboundVariableError(Exception):
     pass
 
@@ -41,15 +83,9 @@ class RuleWriter:
         result = ""
 
         # empty result if the 'when' condition of the skeleton is not satisfied
-        if skeleton.when:
-            try:
-                value = bindings[skeleton.when]
-            except KeyError:
-                raise UnboundVariableError(
-                    f"Variable {str(skeleton.when)} unbound in rule '{rule_name}'"
-                )
-            if not value:
-                return ""
+
+        if not when_satisfied(skeleton.when, bindings, rule_name):
+            return ""
 
         for token in skeleton.tokens:
             if isinstance(token, str):
@@ -82,9 +118,6 @@ class RuleWriter:
                                 f"Variable extension not implemented for {type(value)}"
                             )
                     case (SkeletonVariableVarExpansion(), PatternVariableCollection()):
-                        # TODO: If the pattern variable that is referenced by the skeleton variable is collecting multiple atoms,
-                        # the extension is applied to each individual atom in the collection
-
                         if isinstance(value, list):
                             result += ",".join(
                                 extend_token(token, str(v))
