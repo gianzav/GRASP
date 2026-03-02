@@ -50,6 +50,21 @@ impl = lexeme(string(":-"))
 newline = lexeme(string("\n"))
 question_mark = string("?")
 dollar = string("$")
+number = regex(r"[0-9]+")
+arith = (
+    string("<=")
+    | string(">=")
+    | string("<")
+    | string(">")
+    | string("=")
+    | string("+")
+    | string("-")
+    | string("**")
+    | string("*")
+    | string("/")
+    | string("\\")
+)
+
 
 # Skeleton-specific punctuation (preserves newlines)
 skeleton_dot = skeleton_lexeme(string("."))
@@ -57,11 +72,10 @@ skeleton_impl = skeleton_lexeme(string(":-"))
 
 # Primitives
 
-number = lexeme(regex(r"-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?")).map(float)
 string_part = regex(r'[^"\\]+')
 
 rule_name = lexeme(at >> regex(r"[A-Za-z\-0-9]+"))
-rule_tokens = lexeme(regex(r"[A-Za-z0-9\-\{\},:;()]+"))
+rule_tokens = regex(r"[A-Za-z0-9\-\{\},:;()]+") | arith
 
 
 def pattern_rule():
@@ -90,7 +104,7 @@ def pattern_rule():
             return PatternVariableCollection(name)
 
     pattern_rule_tokens = (
-        rule_tokens | lexeme(pattern_variable_collection) | pattern_variable
+        lexeme(rule_tokens) | lexeme(pattern_variable_collection) | pattern_variable
     ).at_least(1)
 
     pattern_rule_head = pattern_rule_tokens
@@ -147,14 +161,11 @@ def skeleton_rule():
         | skeleton_numeric_variable
     )
 
-    # Token without lexeme to preserve spacing
-    skeleton_token = regex(r"[A-Za-z0-9\-\{\},:;()]+")
-
     # Capture whitespace as tokens
     space = regex(r"\s+")
 
     # Rule tokens with space - captures tokens interspersed with spaces
-    skeleton_rule_tokens = (skeleton_variable | skeleton_token | space).at_least(1)
+    skeleton_rule_tokens = (skeleton_variable | rule_tokens | space).at_least(1)
 
     skeleton_rule_head = skeleton_rule_tokens
     skeleton_rule_body = skeleton_rule_tokens
