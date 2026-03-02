@@ -242,6 +242,27 @@ def test_lower_bound_choice():
 def test_atom_list():
     pattern = "?atoms* d."
     rule = "a,b,c,d."
-    expected = [M(PVC("atoms"), [_atom("a"), ",", _atom("b"), ",", _atom("c"), ","]), "d", "."]
+    expected = [
+        M(PVC("atoms"), [_atom("a"), ",", _atom("b"), ",", _atom("c"), ","]),
+        "d",
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_match_ignore_spaces():
+    pattern = r"{?h* : ?c*} :- ?body*."
+    rule = "{a:b} :- p,q."
+    expected = [
+        "{",
+        M(PVC("h"), [_atom("a")]),
+        ":",
+        M(PVC("c"), [_atom("b")]),
+        "}",
+        ":-",
+        M(PVC("body"), [_atom("p"), ",", _atom("q")]),
+        ".",
+    ]
 
     _test_match(pattern, rule, expected)
