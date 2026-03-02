@@ -46,30 +46,6 @@ class ListOfTerms:
 
 
 @dataclass
-class Addition(Term):
-    left: Term
-    right: Term | int
-
-    def to_asp(self) -> str:
-        if isinstance(self.right, Term):
-            return self.left.to_asp() + " + " + self.right.to_asp()
-        else:
-            return self.left.to_asp() + " + " + str(self.right)
-
-
-@dataclass
-class LessThan(Term):
-    left: Term
-    right: Term | int
-
-    def to_asp(self) -> str:
-        if isinstance(self.right, Term):
-            return self.left.to_asp() + " < " + self.right.to_asp()
-        else:
-            return self.left.to_asp() + " < " + str(self.right)
-
-
-@dataclass
 class Variable(Term):
     _name: str
 
@@ -95,18 +71,6 @@ class Variable(Term):
 
     def __gt__(self, other) -> bool:
         return isinstance(other, Variable) and self.name > other.name
-
-    def __add__(self, other) -> Addition:
-        if not isinstance(other, (Term, int)):
-            raise TypeError(f"+ undefined for Variable and type '{type(other)}'")
-        else:
-            return Addition(self, other)
-
-    def __lt__(self, other):
-        if not isinstance(other, (Term, int)):
-            raise TypeError(f"+ undefined for Variable and type '{type(other)}'")
-        else:
-            return LessThan(self, other)
 
 
 @dataclass
@@ -269,17 +233,22 @@ class Atom(Term):
     def __str__(self):
         return self.to_asp()
 
-    def __add__(self, other) -> Addition:
-        if not isinstance(other, Term):
-            raise TypeError(f"+ undefined for Atom and type '{type(other)}'")
-        else:
-            return Addition(self, other)
 
-    def __lt__(self, other):
-        if not isinstance(other, Term):
-            raise TypeError(f"+ undefined for Atom and type '{type(other)}'")
-        else:
-            return LessThan(self, other)
+@dataclass
+class Arithmetic(Atom):
+    _name: str
+    args: Sequence[Term] = field(default_factory=list)
+    _positive: bool = True
+
+    def __post_init__(self):
+        if len(self.args) != 2:
+            raise ValueError("Arithmetic must have exactly two arguments")
+
+    def to_asp(self) -> str:
+        _not = "" if self._positive else "not "
+        left, right = self.args
+
+        return f"{_not}{left} {self.name} {right}"
 
 
 class Body:
