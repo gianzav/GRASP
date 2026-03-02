@@ -338,3 +338,37 @@ def test_match_variables():
     ]
 
     _test_match(pattern, rule, expected)
+
+
+def test_parse_atom_no_args():
+    assert _atom("a") == model.Atom("a")
+
+
+def test_parse_atom_atom_arg():
+    assert _atom("a(b)") == model.Atom("a", [model.Atom("b")])
+
+
+def test_parse_atom_variable_arg():
+    assert _atom("a(X)") == model.Atom("a", [model.Variable("X")])
+
+
+def test_parse_atom_number_arg():
+    assert _atom("a(1)") == model.Atom("a", [model.Integer(1)])
+
+
+def test_parse_atom_mixed_args():
+    assert _atom("a(1,b,c(X))") == model.Atom(
+        "a", [model.Integer(1), model.Atom("b"), model.Atom("c", [model.Variable("X")])]
+    )
+
+
+def test_parse_atom_variable_args():
+    assert _atom("s(X,Y)") == model.Atom(
+        "s", [model.Variable("X"), model.Variable("Y")]
+    )
+
+
+def test_parse_atom_arith():
+    assert _atom("s(X+Y)") == model.Atom(
+        "s", [model.Arithmetic("+", [model.Variable("X"), model.Variable("Y")])]
+    )
