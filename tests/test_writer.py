@@ -93,6 +93,38 @@ def test_when_nonempty_match():
     _test_write(skeleton, bindings, expected)
 
 
+def test_when_multiple():
+    skeleton = "{$rest} :- $body. when $rest, $body"
+    bindings = Bindings({PVC("rest"): [_atom("q")], PVC("body"): [_atom("p")]})
+    expected = "{q} :- p."
+
+    _test_write(skeleton, bindings, expected)
+
+
+def test_when_not():
+    skeleton = "{whoops} :- $body. when not $rest"
+    bindings = Bindings({PVC("rest"): [], PVC("body"): [_atom("p")]})
+    expected = "{whoops} :- p."
+
+    _test_write(skeleton, bindings, expected)
+
+
+def test_when_mixed():
+    skeleton = "{whoops} :- $body. when $body, not $rest"
+    bindings = bindings({PVC("rest"): [], PVC("body"): [_atom("p")]})
+    expected = "{whoops} :- p."
+
+    _test_write(skeleton, bindings, expected)
+
+
+def test_when_variable_expansion():
+    skeleton = "{$rest} :- $body. when $body/vars"
+    bindings = bindings({PVC("rest"): [_atom("q")], PVC("body"): [_atom("p(X)")]})
+    expected = "{q} :- p(X)."
+
+    _test_write(skeleton, bindings, expected)
+
+
 def test_fresh_numbered_variable():
     skeleton = "$1 :- $33."
     bindings = Bindings()
