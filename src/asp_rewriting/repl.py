@@ -1,10 +1,12 @@
 from parser import RuleParser
 from matcher import RuleMatcher
 from writer import RuleWriter
+import model
 import parsy
 import logging
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List, Set
 
 
 def peek(x):
@@ -18,8 +20,8 @@ class Context:
     parser = RuleParser()
     matcher = RuleMatcher(parser)
     writer = RuleWriter()
-    rules = []
-    buffer = set()
+    rules: List[model.RewritingRule] = field(default_factory=list)
+    buffer: Set[str] = field(default_factory=set)
 
 
 def repl(ctx: Context):
@@ -59,11 +61,13 @@ def evaluate(input_, ctx: Context):
                     match = True
                     buffer.remove(inp)
                     for skeleton in rule.skeletons:
-                        rewritten = writer.write(skeleton, bindings)
+                        rewritten = writer.write(
+                            skeleton, bindings, rule_name=rule.name
+                        )
                         buffer.add(rewritten)
                         # logging.info(rewritten)
                     break
-                except Exception as e:
+                except parsy.ParseError as e:
                     logging.debug(
                         f"No match for pattern {str(rule.pattern)} on '{inp}'"
                     )
@@ -81,14 +85,16 @@ def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", nargs="?", type=str)
     parser.add_argument("-i", "--interactive", action="store_true")
+    parser.add_argument("--debug", action="store_true")
     return parser
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
     argparser = make_parser()
     args = argparser.parse_args()
     ctx = Context()
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
 
     if args.filename:
         with open(args.filename, "r") as f:
