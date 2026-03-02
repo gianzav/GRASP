@@ -389,3 +389,28 @@ def test_match_cardinality_head():
     ]
 
     _test_match(pattern, rule, expected)
+
+
+def test_parse_negative_atom():
+    assert _atom("not p(X)") == model.Atom("p", [model.Variable("X")], positive=False)
+
+
+def test_match_negative_body_cardinality():
+    pattern = "?h* :- ?pre* not ?l{?rest*}?u, ?post*."
+    rule = "head(X) :- dom(X), not 1{p(X)}2, q."
+    expected = [
+        M(PVC("h"), [_atom("head(X)")]),
+        ":-",
+        M(PVC("pre"), [_atom("dom(X)"), ","]),
+        "not",
+        M(PV("l"), model.Integer(1)),
+        "{",
+        M(PVC("rest"), [_atom("p(X)")]),
+        "}",
+        M(PV("u"), model.Integer(2)),
+        ",",
+        M(PVC("post"), [_atom("q")]),
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
