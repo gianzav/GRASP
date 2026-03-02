@@ -492,7 +492,7 @@ class SkeletonCondition:
 @dataclass
 class Skeleton:
     tokens: Sequence[SkeletonToken]
-    when: Optional[List[SkeletonCondition]] = field(default_factory=list)
+    when: List[SkeletonCondition] = field(default_factory=list)
 
     def __str__(self):
         s = "".join(str(x) for x in self.tokens)
