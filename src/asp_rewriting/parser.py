@@ -168,11 +168,19 @@ def skeleton_rule():
 
     _skeleton = yield (skeleton_constraint | skeleton_fact | skeleton_full_rule)
 
-    when = yield (
-        skeleton_lexeme(string("when")) >> skeleton_lexeme(skeleton_variable)
-    ).optional()
+    when = yield skeleton_lexeme(string("when")).optional()
+    conditions = []
 
-    return Skeleton(_skeleton, when=when)
+    when_condition = seq(
+        lexeme(string("not")).optional(), skeleton_lexeme(skeleton_variable)
+    ).combine(lambda not_, var: SkeletonCondition(var, not_ is None))
+
+    if when:
+        conditions = yield seq(
+            (when_condition << comma).many(), when_condition
+        ).combine(lambda cs, c: cs + [c])
+
+    return Skeleton(_skeleton, when=conditions)
 
 
 @generate

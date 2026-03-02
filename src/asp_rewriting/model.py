@@ -480,14 +480,24 @@ class Pattern:
 
 
 @dataclass
+class SkeletonCondition:
+    variable: SkeletonVariable
+    _positive: bool = True
+
+    def __str__(self):
+        not_ = "" if self._positive else "not "
+        return f"{not_}{str(self.variable)}"
+
+
+@dataclass
 class Skeleton:
     tokens: Sequence[SkeletonToken]
-    when: Optional[SkeletonVariable] = None
+    when: Optional[List[SkeletonCondition]] = field(default_factory=list)
 
     def __str__(self):
         s = "".join(str(x) for x in self.tokens)
-        if self.when:
-            return s + " when " + str(self.when)
+        if len(self.when) > 0:
+            return s + " when " + ", ".join(str(x) for x in self.when)
         return s
 
 
