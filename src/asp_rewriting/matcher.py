@@ -11,7 +11,15 @@ import parsy
 from asp_rewriting import model
 from dataclasses import dataclass
 from typing import List, Optional, Dict, NewType
-from asp_rewriting.parser import whitespace, RuleParser, lexeme, comma, semicolon
+from asp_rewriting.parser import (
+    whitespace,
+    RuleParser,
+    lexeme,
+    comma,
+    semicolon,
+    arith,
+    arith_operators,
+)
 from asp_rewriting.model import (
     SkeletonVariable,
     NumberSkeletonVariable,
@@ -28,26 +36,31 @@ rparen = lexeme(parsy.string(")"))
 
 variable = lexeme(parsy.regex(r"[_A-Z]+[A-Za-z0-9_']*")).map(model.Variable)
 predicate_symbol = lexeme(parsy.regex(r"[a-z]+[A-Za-z0-9'_]*"))
-digits = parsy.regex(r"[0-9]+")
+digits = parsy.regex(r"[0-9]+").map(lambda x: model.Integer(int(x)))
+term = parsy.forward_declaration()
+
+
+def flatten(l: list) -> list:
+    return list(itertools.chain.from_iterable(l))
 
 
 @parsy.generate
 def atom():
-    parens = lambda p: lparen >> p << rparen
-
-    withcomma = parsy.seq((variable | atom), (comma | semicolon)).combine(
-        lambda a, c: [a, c]
-    )
+    separator = comma | semicolon
+    withcomma = parsy.seq(term, separator).combine(lambda a, c: [a, c])
     arglist = parsy.seq(
-        (withcomma).many().map(lambda x: list(itertools.chain.from_iterable(x))),
-        (variable | atom),
+        (withcomma).many().map(flatten),
+        term,
     ).combine(lambda args, arg: args + [arg])
 
     not_ = yield parsy.string("not").optional()
     name = yield predicate_symbol
 
     args = None
-    args = yield parens(arglist).optional()
+    openparen = yield lparen.optional()
+    if openparen:
+        args = yield arglist.optional()
+        yield rparen
 
     if args:
         return model.Atom(name, args, positive=not_ is None)
@@ -56,6 +69,19 @@ def atom():
 
 
 type MatchValue = model.Atom | List[model.Atom | str] | model.Integer | model.String
+
+
+# avoid left-recursion: start binary expressions from a simple term
+# (atom, variable or integer) and recurse on the right-hand side only.
+simple_term = atom | variable | digits
+
+binary_op = parsy.seq(lexeme(simple_term), lexeme(arith), lexeme(simple_term)).combine(
+    lambda left, op, right: model.Arithmetic(op, [left, right])
+)
+
+# once the forward declaration is resolved, a term may be a binary expression
+# or just a simple term
+term.become(binary_op | simple_term)
 
 
 @dataclass
@@ -116,14 +142,6 @@ class Bindings:
             raise TypeError(f"Can't access binding for value of type {type(key)}")
 
 
-def tolist(x):
-    return [x]
-
-
-def flatten(l: list) -> list:
-    return list(itertools.chain.from_iterable(l))
-
-
 @dataclass
 class RuleMatcher:
     parser: RuleParser
@@ -131,13 +149,13 @@ class RuleMatcher:
     def _generate_token_matcher(self, token: model.PatternToken) -> parsy.Parser:
         # match full atoms
         if isinstance(token, model.PatternVariable):
-            return lexeme(atom | digits)
+            return lexeme(term)
         elif isinstance(token, model.PatternVariableCollection):
 
             over_parser = parsy.alt(*(parsy.string(o) for o in token.over))
 
             return lexeme(
-                parsy.seq(lexeme(atom | digits), over_parser.optional()).combine(
+                parsy.seq(term, over_parser.optional()).combine(
                     lambda x, y: [x] if y is None else [x, y]
                 )
             )
@@ -163,9 +181,14 @@ class RuleMatcher:
                 parser += self._generate_token_matcher(token).map(lambda x: [x])
             else:
                 match = Match(token)
-                parser += self._generate_token_matcher(token).map(
-                    lambda x, m=match: [m.bind_value(x)]
-                )
+                if isinstance(next_token, str) and next_token in arith_operators:
+                    parser += lexeme(simple_term).map(
+                        lambda x, m=match: [m.bind_value(x)]
+                    )
+                else:
+                    parser += self._generate_token_matcher(token).map(
+                        lambda x, m=match: [m.bind_value(x)]
+                    )
         return parser
 
     def match(self, pattern: str | model.Pattern, rule: str) -> List[Match | str]:
