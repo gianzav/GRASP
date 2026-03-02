@@ -159,9 +159,9 @@ def skeleton_rule():
     skeleton_rule_body = skeleton_rule_tokens
 
     skeleton_fact = seq(skeleton_rule_head, skeleton_dot).combine(lambda x, y: x + [y])
-    skeleton_constraint = seq(
-        (skeleton_impl >> skeleton_rule_body), skeleton_dot
-    ).combine(lambda x, y: x + [y])
+    skeleton_constraint = seq(skeleton_impl, skeleton_rule_body, skeleton_dot).combine(
+        lambda impl, body, dot: [impl] + body + [dot]
+    )
     skeleton_full_rule = (skeleton_rule_head >> skeleton_impl) + seq(
         skeleton_rule_body, skeleton_dot
     ).combine(lambda x, y: x + [y])
