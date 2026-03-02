@@ -90,6 +90,8 @@ class Integer(Term):
     def __gt__(self, other) -> bool:
         if isinstance(other, Integer):
             return self._value > other._value
+        elif isinstance(other, Atom):
+            return True
         raise TypeError(f"Can't compare Integer with value of type {type(other)}")
 
 
