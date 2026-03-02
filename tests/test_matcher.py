@@ -372,3 +372,20 @@ def test_parse_atom_arith():
     assert _atom("s(X+Y)") == model.Atom(
         "s", [model.Arithmetic("+", [model.Variable("X"), model.Variable("Y")])]
     )
+
+
+def test_match_cardinality_head():
+    pattern = r"?l{?h1*}?u:-?body*."
+    rule = r"1{a}1 :- body."
+    expected = [
+        M(PV("l"), model.Integer(1)),
+        "{",
+        M(PVC("h1"), [_atom("a")]),
+        "}",
+        M(PV("u"), model.Integer(1)),
+        ":-",
+        M(PVC("body"), [_atom("body")]),
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
