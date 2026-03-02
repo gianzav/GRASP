@@ -24,7 +24,7 @@ Where
   - `when` is a keyword that allows to perform a conditional rewriting
 """
 
-from parsy import forward_declaration, regex, seq, string, generate, fail
+from parsy import forward_declaration, regex, seq, string, generate, fail, string_from
 from dataclasses import dataclass
 from asp_rewriting.model import *
 
@@ -51,20 +51,8 @@ newline = lexeme(string("\n"))
 question_mark = string("?")
 dollar = string("$")
 number = regex(r"[0-9]+")
-arith = (
-    string("<=")
-    | string(">=")
-    | string("<")
-    | string(">")
-    | string("=")
-    | string("+")
-    | string("-")
-    | string("**")
-    | string("*")
-    | string("/")
-    | string("\\")
-)
-
+arith_operators = ["<=", ">=", "<", "=", "+", "-", "**", "*", "/", "\\"]
+arith = string_from(*arith_operators)
 
 # Skeleton-specific punctuation (preserves newlines)
 skeleton_dot = skeleton_lexeme(string("."))
