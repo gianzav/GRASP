@@ -266,3 +266,47 @@ def test_match_ignore_spaces():
     ]
 
     _test_match(pattern, rule, expected)
+
+
+def test_match_number():
+    pattern = r"s(?x)."
+    rule = r"s(0)."
+    expected = [
+        "s",
+        "(",
+        M(PV("x"), "0"),
+        ")",
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_match_arith_separate():
+    pattern = r"s(?x+?y)."
+    rule = r"s(X+Y)."
+    expected = [
+        "s",
+        "(",
+        M(PV("x"), "X"),
+        "+",
+        M(PV("y"), "Y"),
+        ")",
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_match_arith_together():
+    pattern = r"s(?x*)."
+    rule = r"s(X+Y)."
+    expected = [
+        "s",
+        "(",
+        M(PVC("x"), [model.Variable("X"), "+", model.Variable("Y")]),
+        ")",
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
