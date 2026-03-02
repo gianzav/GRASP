@@ -27,10 +27,14 @@ def extend_token(token: SkeletonVariable, value: str) -> str:
         return value + token.extension
 
 
+class UnboundVariableError(Exception):
+    pass
+
+
 @dataclass
 class RuleWriter:
 
-    def write(self, skeleton: Skeleton, bindings: Bindings) -> str:
+    def write(self, skeleton: Skeleton, bindings: Bindings, rule_name="") -> str:
         """
         Gives the rewriting based on `skeleton` and the `bindings`.
         """
@@ -38,7 +42,12 @@ class RuleWriter:
 
         # empty result if the 'when' condition of the skeleton is not satisfied
         if skeleton.when:
-            value = bindings[skeleton.when]
+            try:
+                value = bindings[skeleton.when]
+            except KeyError:
+                raise UnboundVariableError(
+                    f"Variable {str(skeleton.when)} unbound in rule '{rule_name}'"
+                )
             if not value:
                 return ""
 
@@ -46,10 +55,20 @@ class RuleWriter:
             if isinstance(token, str):
                 result += token
             elif isinstance(token, (NumberSkeletonVariable, NamedSkeletonVariable)):
-                value = bindings[token]
+                try:
+                    value = bindings[token]
+                except KeyError:
+                    raise UnboundVariableError(
+                        f"Variable {str(token)} unbound in rule '{rule_name}'"
+                    )
                 result += extend_token(token, str(value))
             else:
-                value = bindings[token]
+                try:
+                    value = bindings[token]
+                except KeyError:
+                    raise UnboundVariableError(
+                        f"Variable {str(token)} unbound in rule '{rule_name}'"
+                    )
                 var = bindings.get_pattern_variable(token)
 
                 match (token, var):
