@@ -78,11 +78,11 @@ def test_match_cardinality():
     expected = [
         M(PVC("h"), [_atom("head(X,Y,Z)")]),
         ":-",
-        M(PV("l"), "1"),
+        M(PV("l"), model.Integer(1)),
         "{",
         M(PVC("rest"), [_atom("a")]),
         "}",
-        M(PV("u"), "2"),
+        M(PV("u"), model.Integer(2)),
         ",",
         M(PVC("body"), [_atom("p"), ",", _atom("q"), ",", _atom("r")]),
         ".",
@@ -97,11 +97,11 @@ def test_match_pooling():
     expected = [
         M(PVC("h"), [_atom("head(X,Y,Z)")]),
         ":-",
-        M(PV("l"), "1"),
+        M(PV("l"), model.Integer(1)),
         "{",
         M(PVC("rest"), [_atom("a"), ";", _atom("b"), ";", _atom("c"), ";", _atom("d")]),
         "}",
-        M(PV("u"), "2"),
+        M(PV("u"), model.Integer(2)),
         ",",
         M(PVC("body"), [_atom("p"), ",", _atom("q"), ",", _atom("r")]),
         ".",
@@ -160,7 +160,7 @@ def test_head_cardinality():
     pattern = "?l{?h1* : ?c1*; ?rest[;:,]*}?u :- ?body*."
     rule = "1{p : q; r : s}2 :- body."
     expected = [
-        M(PV("l"), "1"),
+        M(PV("l"), model.Integer(1)),
         "{",
         M(PVC("h1"), [_atom("p")]),
         ":",
@@ -168,7 +168,7 @@ def test_head_cardinality():
         ";",
         M(PVC("rest"), [_atom("r"), ":", _atom("s")]),
         "}",
-        M(PV("u"), "2"),
+        M(PV("u"), model.Integer(2)),
         ":-",
         M(PVC("body"), [_atom("body")]),
         ".",
@@ -185,11 +185,11 @@ def test_negative_body_cardinality():
         ":-",
         M(PVC("bodypre"), [_atom("p"), ",", _atom("q"), ","]),
         "not",
-        M(PV("l"), "1"),
+        M(PV("l"), model.Integer(1)),
         "{",
         M(PVC("rest"), [_atom("p"), ":", _atom("r")]),
         "}",
-        M(PV("u"), "2"),
+        M(PV("u"), model.Integer(2)),
         ",",
         M(PVC("body"), [_atom("s"), ",", _atom("t")]),
         ".",
@@ -204,11 +204,11 @@ def test_lower_bound():
     expected = [
         M(PVC("h"), [_atom("head")]),
         ":-",
-        M(PV("l"), "1"),
+        M(PV("l"), model.Integer(1)),
         "{",
         M(PVC("rest"), [_atom("p"), ":", _atom("q"), ";", _atom("r"), ":", _atom("s")]),
         "}",
-        M(PV("u"), "2"),
+        M(PV("u"), model.Integer(2)),
         ",",
         M(PVC("body"), [_atom("t"), ",", _atom("u")]),
         ".",
@@ -224,7 +224,7 @@ def test_lower_bound_choice():
         M(PVC("h"), [_atom("head")]),
         ":-",
         M(PVC("bodypre"), []),
-        M(PV("l"), "1"),
+        M(PV("l"), model.Integer(1)),
         "{",
         M(PVC("bi"), [_atom("p")]),
         ":",
@@ -272,9 +272,8 @@ def test_match_number():
     pattern = r"s(?x)."
     rule = r"s(0)."
     expected = [
-        "s",
-        "(",
-        M(PV("x"), "0"),
+        "s(",
+        M(PV("x"), model.Integer(0)),
         ")",
         ".",
     ]
@@ -286,11 +285,10 @@ def test_match_arith_separate():
     pattern = r"s(?x+?y)."
     rule = r"s(X+Y)."
     expected = [
-        "s",
-        "(",
-        M(PV("x"), "X"),
+        "s(",
+        M(PV("x"), model.Variable("X")),
         "+",
-        M(PV("y"), "Y"),
+        M(PV("y"), model.Variable("Y")),
         ")",
         ".",
     ]
@@ -299,12 +297,42 @@ def test_match_arith_separate():
 
 
 def test_match_arith_together():
-    pattern = r"s(?x*)."
-    rule = r"s(X+Y)."
+    pattern = "s(?x)."
+    rule = "s(X+Y)."
     expected = [
-        "s",
-        "(",
-        M(PVC("x"), [model.Variable("X"), "+", model.Variable("Y")]),
+        "s(",
+        M(
+            PV("x"),
+            model.Arithmetic("+", [model.Variable("X"), model.Variable("Y")]),
+        ),
+        ")",
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_match_nested_number():
+    pattern = r"s(?x)."
+    rule = r"s(s(0))."
+    expected = [
+        "s(",
+        M(PV("x"), _atom("s(0)")),
+        ")",
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_match_variables():
+    pattern = r"s(?x,?y)."
+    rule = r"s(X,Y)."
+    expected = [
+        "s(",
+        M(PV("x"), model.Variable("X")),
+        ",",
+        M(PV("y"), model.Variable("Y")),
         ")",
         ".",
     ]
