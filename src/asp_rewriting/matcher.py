@@ -53,7 +53,7 @@ def atom():
         term,
     ).combine(lambda args, arg: args + [arg])
 
-    not_ = yield parsy.string("not").optional()
+    not_ = yield lexeme(parsy.string("not").optional())
     name = yield predicate_symbol
 
     args = None
