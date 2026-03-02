@@ -77,6 +77,76 @@ def test_when(parser):
     )
 
 
+def test_when_multiple(parser):
+    rule = textwrap.dedent(
+        """\
+    @rule-name ?a :- ?b, ?body*. -> 
+        {p} :- $body. when $body, $b
+    """
+    )
+    parsed = parser.parse(rule)
+    assert (
+        oneline(str(parsed))
+        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body, $b"
+    )
+
+
+def test_when_not(parser):
+    rule = textwrap.dedent(
+        """\
+    @rule-name ?a :- ?b, ?body*. -> 
+        {p} :- $body. when not $body
+    """
+    )
+    parsed = parser.parse(rule)
+    assert (
+        oneline(str(parsed))
+        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when not $body"
+    )
+
+
+def test_when_mixed(parser):
+    rule = textwrap.dedent(
+        """\
+    @rule-name ?a :- ?b, ?body*. -> 
+        {p} :- $body. when $body, not $b
+    """
+    )
+    parsed = parser.parse(rule)
+    assert (
+        oneline(str(parsed))
+        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body, not $b"
+    )
+
+
+def test_when_variable_expansion(parser):
+    rule = textwrap.dedent(
+        """\
+    @rule-name ?a :- ?b, ?body*. ->
+        {p} :- $body. when $body/vars
+    """
+    )
+    parsed = parser.parse(rule)
+    assert (
+        oneline(str(parsed))
+        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body/vars"
+    )
+
+
+def test_when_multiple_variable_expansion(parser):
+    rule = textwrap.dedent(
+        """\
+    @rule-name ?a :- ?b, ?body*. ->
+        {p} :- $body. when $body/vars, $a/vars
+    """
+    )
+    parsed = parser.parse(rule)
+    assert (
+        oneline(str(parsed))
+        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body/vars, $a/vars"
+    )
+
+
 def test_parse_multiline_indent_success(parser):
     rule = textwrap.dedent(
         """\
