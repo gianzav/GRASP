@@ -83,7 +83,7 @@ def evaluate(input_, ctx: Context):
 
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
-    parser.add_argument("filename", nargs="?", type=str)
+    parser.add_argument("filenames", nargs="*", type=str)
     parser.add_argument("-i", "--interactive", action="store_true")
     parser.add_argument("--debug", action="store_true")
     return parser
@@ -96,18 +96,19 @@ def main():
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    if args.filename:
-        with open(args.filename, "r") as f:
-            # bad pre-processing to eliminate comments
-            lines = f.readlines()
-            code = ""
-            for line in lines:
-                before, sep, after = line.partition("%")
-                code += before
+    if args.filenames:
+        for file in args.filenames:
+            with open(file, "r") as f:
+                # bad pre-processing to eliminate comments
+                lines = f.readlines()
+                code = ""
+                for line in lines:
+                    before, sep, after = line.partition("%")
+                    code += before
 
-            rules = code.split("\n\n")
-            for rule in rules:
-                evaluate(rule, ctx)
+                rules = code.split("\n\n")
+                for rule in rules:
+                    evaluate(rule, ctx)
         if args.interactive:
             repl(ctx)
     else:
