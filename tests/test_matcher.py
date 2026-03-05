@@ -1,11 +1,14 @@
 from asp_rewriting.matcher import RuleMatcher, Match as M, atom
 from asp_rewriting.parser import RuleParser
+from asp_rewriting import matcher
 
 
 from asp_rewriting.model import PatternVariable as PV
 from asp_rewriting.model import PatternVariableCollection as PVC
 from asp_rewriting.model import PatternVariableCollection as PVC
 from asp_rewriting import model
+import pytest
+import parsy
 
 
 def _atom(s: str):
@@ -414,3 +417,94 @@ def test_match_negative_body_cardinality():
     ]
 
     _test_match(pattern, rule, expected)
+
+
+def test_positive_body_cardinality():
+    pattern = "?h* :- ?pre* ?l{?rest*}?u, ?post*."
+    rule = "head :- p, 1{q}2, r."
+    expected = [
+        M(PVC("h"), [_atom("head")]),
+        ":-",
+        M(PVC("pre"), [_atom("p"), ","]),
+        M(PV("l"), model.Integer(1)),
+        "{",
+        M(PVC("rest"), [_atom("q")]),
+        "}",
+        M(PV("u"), model.Integer(2)),
+        ",",
+        M(PVC("post"), [_atom("r")]),
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_empty_wildcard_left():
+    pattern = "?h* :- ?pre* p, ?post*."
+    rule = "head :- p, r."
+    expected = [
+        M(PVC("h"), [_atom("head")]),
+        ":-",
+        M(PVC("pre"), []),
+        "p,",
+        M(PVC("post"), [_atom("r")]),
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_empty_wildcard_right():
+    pattern = "?h* :- ?pre* p ?post*."
+    rule = "head :- a, p."
+    expected = [
+        M(PVC("h"), [_atom("head")]),
+        ":-",
+        M(PVC("pre"), [_atom("a"), ","]),
+        "p",
+        M(PVC("post"), []),
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_empty_wildcard_both():
+    pattern = "?h* :- ?pre* p ?post*."
+    rule = "head :- p."
+    expected = [
+        M(PVC("h"), [_atom("head")]),
+        ":-",
+        M(PVC("pre"), []),
+        "p",
+        M(PVC("post"), []),
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_wildcard_variable_wildcard():
+    pattern = "?h* :- ?pre* ?x, ?post*."
+    rule = "head :- a, p, b."
+    # mind that ?x is bound to 'a' because of the comma right after ?x
+    # if there is no comma, ?x is matched to 'b'
+    expected = [
+        M(PVC("h"), [_atom("head")]),
+        ":-",
+        M(PVC("pre"), []),
+        M(PV("x"), _atom("a")),
+        ",",
+        M(PVC("post"), [_atom("p"), ",", _atom("b")]),
+        ".",
+    ]
+
+    _test_match(pattern, rule, expected)
+
+
+def test_same_variable_twice_fail():
+    pattern = "?h* :- ?x, ?x."
+    rule = "head :- a, p, b."
+    expected = []  # don't care, should raise an error
+    with pytest.raises(matcher.BindingError):
+        _test_match(pattern, rule, expected)
