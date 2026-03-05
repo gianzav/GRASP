@@ -165,18 +165,27 @@ class RuleMatcher:
     def _generate_pattern_matcher(self, pattern: model.Pattern) -> parsy.Parser:
         parser = whitespace.map(lambda x: [])
 
-        for token, next_token in zip(pattern.tokens, list(pattern.tokens)[1:] + [None]):
+        for i, (token, next_token) in enumerate(
+            zip(pattern.tokens, list(pattern.tokens)[1:] + [None])
+        ):
             # match eagerly all the atoms up to the next token
             if isinstance(token, model.PatternVariableCollection):
-                if next_token is not None:
-                    this = self._generate_token_matcher(token)
-                    next_ = self._generate_token_matcher(next_token)
-
-                    match = Match(token)
-                    # parse partially until the next parser is triggered
-                    parser += this.until(next_).map(
-                        lambda xs, m=match: [m.bind_value(flatten(xs))]
+                this = self._generate_token_matcher(token)
+                match = Match(token)
+                parser += this.until(
+                    self._generate_pattern_matcher(
+                        model.Pattern(pattern.tokens[i + 1 :])
                     )
+                ).map(lambda xs, m=match: [m.bind_value(flatten(xs))])
+                # if next_token is not None:
+                #     this = self._generate_token_matcher(token)
+                #     next_ = self._generate_token_matcher(next_token)
+
+                #     match = Match(token)
+                #     # parse partially until the next parser is triggered
+                #     parser += this.until(next_).map(
+                #         lambda xs, m=match: [m.bind_value(flatten(xs))]
+                #     )
             elif isinstance(token, str):
                 parser += self._generate_token_matcher(token).map(lambda x: [x])
             else:
@@ -219,3 +228,7 @@ class RuleMatcher:
             bindings[variable] = value
 
         return Bindings(bindings)
+
+
+class BindingError(Exception):
+    pass
