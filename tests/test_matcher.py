@@ -504,7 +504,26 @@ def test_wildcard_variable_wildcard():
 
 def test_same_variable_twice_fail():
     pattern = "?h* :- ?x, ?x."
-    rule = "head :- a, p, b."
+    rule = "head :- a, b."
     expected = []  # don't care, should raise an error
-    with pytest.raises(matcher.BindingError):
-        _test_match(pattern, rule, expected)
+    with pytest.raises(
+        parsy.ParseError,
+        match=f"Variable ?x can't match on a and b",
+    ):
+        parser = RuleParser()
+        matcher = RuleMatcher(parser)
+        matcher.match(pattern, rule)
+
+
+def test_same_variable_twice_success():
+    pattern = "?h* :- ?x, ?x."
+    rule = "head :- a, a."
+    expected = [
+        M(PVC("h"), [_atom("head")]),
+        ":-",
+        M(PV("x"), _atom("a")),
+        ",",
+        M(PV("x"), _atom("a")),
+        ".",
+    ]
+    _test_match(pattern, rule, expected)
