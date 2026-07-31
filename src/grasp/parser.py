@@ -26,7 +26,7 @@ Where
 
 from parsy import forward_declaration, regex, seq, string, generate, fail, string_from
 from dataclasses import dataclass
-from asp_rewriting.model import *
+from grasp.model import *
 
 # Utilities
 whitespace = regex(r"\s*")

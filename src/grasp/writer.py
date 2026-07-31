@@ -1,19 +1,19 @@
 from typing import List
 
-from asp_rewriting.model import (
+from grasp.model import (
     Skeleton,
     PatternVariable,
     PatternVariableCollection,
     SkeletonVariableVarExpansion,
 )
-from asp_rewriting.matcher import Bindings
+from grasp.matcher import Bindings
 from dataclasses import dataclass
-from asp_rewriting.model import (
+from grasp.model import (
     SkeletonVariable,
     NumberSkeletonVariable,
     NamedSkeletonVariable,
 )
-from asp_rewriting import model
+from grasp import model
 import copy
 
 

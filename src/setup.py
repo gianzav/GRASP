@@ -1,3 +1,3 @@
 from setuptools import setup
 
-setup(name="asp_rewriting", version="1.0", packages=["asp_rewriting"])
+setup(name="grasp", version="1.0", packages=["grasp"])

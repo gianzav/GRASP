@@ -1,5 +1,5 @@
-from asp_rewriting.parser import RuleParser
-from asp_rewriting.model import *
+from grasp.parser import RuleParser
+from grasp.model import *
 
 rule = """\
 @rule-name ?a :- ?b, ?body*. -> 

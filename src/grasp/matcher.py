@@ -8,10 +8,10 @@ Generation of a custom parser based on a user-defined pattern.
 """
 
 import parsy
-from asp_rewriting import model
+from grasp import model
 from dataclasses import dataclass
 from typing import List, Optional, Dict, NewType
-from asp_rewriting.parser import (
+from grasp.parser import (
     whitespace,
     RuleParser,
     lexeme,
@@ -20,7 +20,7 @@ from asp_rewriting.parser import (
     arith,
     arith_operators,
 )
-from asp_rewriting.model import (
+from grasp.model import (
     SkeletonVariable,
     NumberSkeletonVariable,
     NamedSkeletonVariable,

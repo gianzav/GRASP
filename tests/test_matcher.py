@@ -1,12 +1,12 @@
-from asp_rewriting.matcher import RuleMatcher, Match as M, atom
-from asp_rewriting.parser import RuleParser
-from asp_rewriting import matcher
+from grasp.matcher import RuleMatcher, Match as M, atom
+from grasp.parser import RuleParser
+from grasp import matcher
 
 
-from asp_rewriting.model import PatternVariable as PV
-from asp_rewriting.model import PatternVariableCollection as PVC
-from asp_rewriting.model import PatternVariableCollection as PVC
-from asp_rewriting import model
+from grasp.model import PatternVariable as PV
+from grasp.model import PatternVariableCollection as PVC
+from grasp.model import PatternVariableCollection as PVC
+from grasp import model
 import pytest
 import parsy
 

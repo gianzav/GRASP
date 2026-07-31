@@ -1,4 +1,4 @@
-from asp_rewriting.parser import RuleParser, IndentationError, Pattern, PatternVariable
+from grasp.parser import RuleParser, IndentationError, Pattern, PatternVariable
 from pytest import fixture
 import pytest
 import parsy

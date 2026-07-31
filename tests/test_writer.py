@@ -1,8 +1,8 @@
-from asp_rewriting.model import Skeleton, SkeletonVariable as SV
-from asp_rewriting.matcher import Bindings, atom
-from asp_rewriting.writer import RuleWriter
-from asp_rewriting.model import PatternVariable as PV, PatternVariableCollection as PVC
-from asp_rewriting.parser import RuleParser
+from grasp.model import Skeleton, SkeletonVariable as SV
+from grasp.matcher import Bindings, atom
+from grasp.writer import RuleWriter
+from grasp.model import PatternVariable as PV, PatternVariableCollection as PVC
+from grasp.parser import RuleParser
 
 
 def _atom(s: str):
