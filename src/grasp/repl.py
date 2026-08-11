@@ -1,5 +1,5 @@
 from parser import RuleParser
-from matcher import RuleMatcher
+from matcher import RuleMatcher, BindingError
 from writer import RuleWriter
 import model
 import parsy
@@ -7,6 +7,7 @@ import logging
 import argparse
 from dataclasses import dataclass, field
 from typing import List, Set
+import sys
 
 
 def peek(x):
@@ -32,8 +33,13 @@ def repl(ctx: Context):
             case "":
                 pass
             case ":rules":
-                for rule in ctx.rules:
-                    print(str(rule))
+                if ctx.rules:
+                    for rule in ctx.rules:
+                        print(str(rule))
+                else:
+                    print("No rule defined")
+            case ":exit":
+                sys.exit(0)
             case _:
                 evaluate(inp, ctx)
 
@@ -72,6 +78,8 @@ def evaluate(input_, ctx: Context):
                         f"No match for pattern {str(rule.pattern)} on '{inp}'"
                     )
                     # raise e
+                except BindingError as e:
+                    logging.debug(e.msg)
 
             if not match:
                 done.add(inp)
