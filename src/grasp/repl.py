@@ -99,16 +99,27 @@ def main():
     if args.filenames:
         for file in args.filenames:
             with open(file, "r") as f:
-                # bad pre-processing to eliminate comments
-                lines = f.readlines()
-                code = ""
-                for line in lines:
-                    before, sep, after = line.partition("%")
-                    code += before
+                text = f.read()
 
-                rules = code.split("\n\n")
-                for rule in rules:
-                    evaluate(rule, ctx)
+            # remove comments and preserve newlines so rules can still be
+            # separated by blank lines or indentation.
+            cleaned_lines = []
+            for line in text.splitlines():
+                before, sep, after = line.partition("%")
+                cleaned_lines.append(before.rstrip())
+            cleaned_text = "\n".join(cleaned_lines).strip()
+
+            if not cleaned_text:
+                continue
+
+            try:
+                rules = ctx.parser.parse_rules(cleaned_text)
+            except parsy.ParseError as e:
+                raise ValueError(f"Failed to parse rules from file {file}: {e}")
+
+            for rule in rules:
+                ctx.rules.append(rule)
+
         if args.interactive:
             repl(ctx)
     else:

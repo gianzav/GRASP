@@ -214,6 +214,19 @@ class RuleParser:
     def parse(self, rule: str) -> RewritingRule:
         return rewriting_rule.parse(rule)
 
+    def parse_rules(self, text: str) -> list[RewritingRule]:
+        rules: list[RewritingRule] = []
+        remainder = text
+
+        while True:
+            remainder = remainder.lstrip("\n \t")
+            if not remainder:
+                break
+            rule, remainder = rewriting_rule.parse_partial(remainder)
+            rules.append(rule)
+
+        return rules
+
     def parse_pattern(self, pattern: str):
         return pattern_rule().parse(pattern)
 
