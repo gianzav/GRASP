@@ -527,3 +527,15 @@ def test_same_variable_twice_success():
         ".",
     ]
     _test_match(pattern, rule, expected)
+
+def test_match_atom_name():
+    pattern = r"?name(?args*)."
+    rule = "p(1,2,3)."
+    expected = [
+        M(PV("name"), _atom("p")),
+        "(",
+        M(PVC("args"), [model.Integer(1), ",", model.Integer(2), ",", model.Integer(3)]),
+        ")",
+        "."
+    ]
+    _test_match(pattern,rule,expected)
