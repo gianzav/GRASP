@@ -1,6 +1,6 @@
-@add0 add(0, ?x). -> $x.
-@add0 add(?x, 0). -> $x.
-@add0 add(?x, s(?y)). -> add(s($x),$y).
+@add0 add(0, ?x). -> ?x.
+@add0 add(?x, 0). -> ?x.
+@add0 add(?x, s(?y)). -> add(s(?x),?y).
 @1 s(0). -> 1.
 @2 s(s(0)). -> 2.
 @3 s(s(s(0))). ->  3.
