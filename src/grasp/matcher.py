@@ -28,7 +28,6 @@ from grasp.model import (
 import collections
 import itertools
 
-
 VarName = NewType("VarName", str)
 
 lparen = lexeme(parsy.string("("))
@@ -146,9 +145,15 @@ class Bindings:
 class RuleMatcher:
     parser: RuleParser
 
-    def _generate_token_matcher(self, token: model.PatternToken) -> parsy.Parser:
-        # match full atoms
+    def _generate_token_matcher(
+        self, token: model.PatternToken, next_token: str | None = None
+    ) -> parsy.Parser:
+        # match full atoms unless the pattern explicitly continues with a
+        # left parenthesis; in that case the pattern variable should bind only
+        # the name of the atom, not the whole atom with arguments.
         if isinstance(token, model.PatternVariable):
+            if next_token == "(":
+                return lexeme(parsy.regex(r"[a-z]+[A-Za-z0-9'_]*").map(model.Atom))
             return lexeme(term)
         elif isinstance(token, model.PatternVariableCollection):
 
@@ -177,25 +182,16 @@ class RuleMatcher:
                         model.Pattern(pattern.tokens[i + 1 :])
                     )
                 ).map(lambda xs, m=match: [m.bind_value(flatten(xs))])
-                # if next_token is not None:
-                #     this = self._generate_token_matcher(token)
-                #     next_ = self._generate_token_matcher(next_token)
-
-                #     match = Match(token)
-                #     # parse partially until the next parser is triggered
-                #     parser += this.until(next_).map(
-                #         lambda xs, m=match: [m.bind_value(flatten(xs))]
-                #     )
             elif isinstance(token, str):
                 parser += self._generate_token_matcher(token).map(lambda x: [x])
-            else:
+            else:  # if token is a PatternVariable
                 match = Match(token)
                 if isinstance(next_token, str) and next_token in arith_operators:
                     parser += lexeme(simple_term).map(
                         lambda x, m=match: [m.bind_value(x)]
                     )
                 else:
-                    parser += self._generate_token_matcher(token).map(
+                    parser += self._generate_token_matcher(token, next_token).map(
                         lambda x, m=match: [m.bind_value(x)]
                     )
         return parser
