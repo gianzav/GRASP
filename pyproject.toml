@@ -12,3 +12,6 @@ license-files = ["LICEN[CS]E*"]
 
 [project.urls]
 Homepage = "https://github.com/gianzav/GRASP"
+
+[project.scripts]
+grasp = "grasp.repl:main"

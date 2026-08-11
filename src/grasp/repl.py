@@ -1,7 +1,7 @@
-from parser import RuleParser
-from matcher import RuleMatcher, BindingError
-from writer import RuleWriter
-import model
+from grasp.parser import RuleParser
+from grasp.matcher import RuleMatcher, BindingError
+from grasp.writer import RuleWriter
+import grasp.model as model
 import parsy
 import logging
 import argparse
