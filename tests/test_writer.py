@@ -26,7 +26,7 @@ def test_write_no_vars():
 
 
 def test_one_simple_var():
-    skeleton = "$h :- b."
+    skeleton = "?h :- b."
     bindings: Bindings = Bindings({PV("h"): _atom("a")})
     expected = "a :- b."
 
@@ -34,7 +34,7 @@ def test_one_simple_var():
 
 
 def test_two_vars():
-    skeleton = "$h :- $body."
+    skeleton = "?h :- ?body."
     bindings: Bindings = Bindings({PV("h"): _atom("a"), PV("body"): _atom("b")})
     expected = "a :- b."
 
@@ -42,7 +42,7 @@ def test_two_vars():
 
 
 def test_catchall_body():
-    skeleton = "$h :- $body."
+    skeleton = "?h :- ?body."
     bindings: Bindings = Bindings(
         {PV("h"): "a", PVC("body"): [_atom("b"), ",", _atom("c"), ",", _atom("d")]}
     )
@@ -52,7 +52,7 @@ def test_catchall_body():
 
 
 def test_catchall_head():
-    skeleton = "$h :- $body."
+    skeleton = "?h :- ?body."
     bindings: Bindings = Bindings(
         {
             PVC("h"): [_atom("a"), ";", _atom("b"), ";", _atom("c")],
@@ -65,7 +65,7 @@ def test_catchall_head():
 
 
 def test_rewrite_head_1():
-    skeleton = "$h :- $c, $body, not $h'."
+    skeleton = "?h :- ?c, ?body, not ?h'."
     bindings: Bindings = Bindings(
         {
             PV("h"): _atom("head(X)"),
@@ -79,14 +79,14 @@ def test_rewrite_head_1():
 
 
 def test_when_empty_match():
-    skeleton = "{$rest} :- $body. when $rest"
+    skeleton = "{?rest} :- ?body. when ?rest"
     bindings = Bindings({PVC("rest"): [], PVC("body"): [_atom("p")]})
     expected = ""
     _test_write(skeleton, bindings, expected)
 
 
 def test_when_nonempty_match():
-    skeleton = "{$rest} :- $body. when $rest"
+    skeleton = "{?rest} :- ?body. when ?rest"
     bindings = Bindings({PVC("rest"): [_atom("q")], PVC("body"): [_atom("p")]})
     expected = "{q} :- p."
 
@@ -94,7 +94,7 @@ def test_when_nonempty_match():
 
 
 def test_when_multiple():
-    skeleton = "{$rest} :- $body. when $rest, $body"
+    skeleton = "{?rest} :- ?body. when ?rest, ?body"
     bindings = Bindings({PVC("rest"): [_atom("q")], PVC("body"): [_atom("p")]})
     expected = "{q} :- p."
 
@@ -102,7 +102,7 @@ def test_when_multiple():
 
 
 def test_when_not():
-    skeleton = "{whoops} :- $body. when not $rest"
+    skeleton = "{whoops} :- ?body. when not ?rest"
     bindings = Bindings({PVC("rest"): [], PVC("body"): [_atom("p")]})
     expected = "{whoops} :- p."
 
@@ -110,7 +110,7 @@ def test_when_not():
 
 
 def test_when_mixed():
-    skeleton = "{whoops} :- $body. when $body, not $rest"
+    skeleton = "{whoops} :- ?body. when ?body, not ?rest"
     bindings = Bindings({PVC("rest"): [], PVC("body"): [_atom("p")]})
     expected = "{whoops} :- p."
 
@@ -118,7 +118,7 @@ def test_when_mixed():
 
 
 def test_when_variable_expansion():
-    skeleton = "{$rest} :- $body. when $body/vars"
+    skeleton = "{?rest} :- ?body. when ?body/vars"
     bindings = Bindings({PVC("rest"): [_atom("q")], PVC("body"): [_atom("p(X)")]})
     expected = "{q} :- p(X)."
 
@@ -126,7 +126,7 @@ def test_when_variable_expansion():
 
 
 def test_fresh_numbered_variable():
-    skeleton = "$1 :- $33."
+    skeleton = "?1 :- ?33."
     bindings = Bindings()
     expected = "_new0 :- _new1."
 
@@ -134,7 +134,7 @@ def test_fresh_numbered_variable():
 
 
 def test_fresh_numbered_variable_same_variable_twice():
-    skeleton = "$1 :- $1."
+    skeleton = "?1 :- ?1."
     bindings = Bindings()
     expected = "_new0 :- _new0."
 
@@ -142,7 +142,7 @@ def test_fresh_numbered_variable_same_variable_twice():
 
 
 def test_fresh_named_variable():
-    skeleton = "$[a] :- $[a]."
+    skeleton = "?[a] :- ?[a]."
     bindings = Bindings()
     expected = "_new0 :- _new0."
 
@@ -150,7 +150,7 @@ def test_fresh_named_variable():
 
 
 def test_fresh_named_variable_extension():
-    skeleton = "$[a] :- $[a]'."
+    skeleton = "?[a] :- ?[a]'."
     bindings = Bindings()
     expected = "_new0 :- _new0'."
 
@@ -158,7 +158,7 @@ def test_fresh_named_variable_extension():
 
 
 def test_vars_expansion():
-    skeleton = "$1($body/vars) :- $l{$h1 : $c1; $rest}$u, $body."
+    skeleton = "?1(?body/vars) :- ?l{?h1 : ?c1; ?rest}?u, ?body."
     bindings = Bindings(
         {
             PVC("body"): [_atom("p(X)"), ",", _atom("q(Y)")],
@@ -174,14 +174,14 @@ def test_vars_expansion():
 
 
 def test_extension_on_collection():
-    skeleton = "h :- $body'."
+    skeleton = "h :- ?body'."
     bindings = Bindings({PVC("body"): [_atom("p"), ",", _atom("q"), ",", _atom("r")]})
     expected = "h :- p',q',r'."
     _test_write(skeleton, bindings, expected)
 
 
 def test_extension_on_variable_expansion_collection():
-    skeleton = "h :- f($body/vars')."
+    skeleton = "h :- f(?body/vars')."
     bindings = Bindings(
         {PVC("body"): [_atom("p(X)"), ",", _atom("q(Y)"), ",", _atom("r(Z)")]}
     )

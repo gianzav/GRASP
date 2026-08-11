@@ -35,111 +35,111 @@ def test_parse_variable_collection_in_pattern(parser):
 
 
 def test_skeleton_variables(parser):
-    rule = "@rule-name ?a :- ?b, ?body*. -> $[new] :- $b, $1."
+    rule = "@rule-name ?a :- ?b, ?body*. -> ?[new] :- ?b, ?1."
     parsed = parser.parse(rule)
-    assert oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> $[new] :- $b, $1."
+    assert oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> ?[new] :- ?b, ?1."
 
 
 def test_multiple_skeletons(parser):
     rule = textwrap.dedent("""\
     @rule-name ?a :- ?b, ?body*. -> 
-        p :- $a.
-        $[new] :- $b, $1.
+        p :- ?a.
+        ?[new] :- ?b, ?1.
     """)
     parsed = parser.parse(rule)
     assert (
         oneline(str(parsed))
-        == "@rule-name ?a:-?b,?body*. -> p :- $a. $[new] :- $b, $1."
+        == "@rule-name ?a:-?b,?body*. -> p :- ?a. ?[new] :- ?b, ?1."
     )
 
 
 def test_skeleton_variable_vars(parser):
     rule = textwrap.dedent("""\
     @rule-name ?a :- ?b, ?body*. -> 
-        p($body/vars) :- q.
+        p(?body/vars) :- q.
     """)
     parsed = parser.parse(rule)
-    assert oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> p($body/vars) :- q."
+    assert oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> p(?body/vars) :- q."
 
 
 def test_when(parser):
     rule = textwrap.dedent("""\
     @rule-name ?a :- ?b, ?body*. -> 
-        {p} :- $body. when $body
+        {p} :- ?body. when ?body
     """)
     parsed = parser.parse(rule)
     assert (
-        oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body"
+        oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> {p} :- ?body. when ?body"
     )
 
 
 def test_when_multiple(parser):
     rule = textwrap.dedent("""\
     @rule-name ?a :- ?b, ?body*. -> 
-        {p} :- $body. when $body, $b
+        {p} :- ?body. when ?body, ?b
     """)
     parsed = parser.parse(rule)
     assert (
         oneline(str(parsed))
-        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body, $b"
+        == "@rule-name ?a:-?b,?body*. -> {p} :- ?body. when ?body, ?b"
     )
 
 
 def test_when_not(parser):
     rule = textwrap.dedent("""\
     @rule-name ?a :- ?b, ?body*. -> 
-        {p} :- $body. when not $body
+        {p} :- ?body. when not ?body
     """)
     parsed = parser.parse(rule)
     assert (
         oneline(str(parsed))
-        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when not $body"
+        == "@rule-name ?a:-?b,?body*. -> {p} :- ?body. when not ?body"
     )
 
 
 def test_when_mixed(parser):
     rule = textwrap.dedent("""\
     @rule-name ?a :- ?b, ?body*. -> 
-        {p} :- $body. when $body, not $b
+        {p} :- ?body. when ?body, not ?b
     """)
     parsed = parser.parse(rule)
     assert (
         oneline(str(parsed))
-        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body, not $b"
+        == "@rule-name ?a:-?b,?body*. -> {p} :- ?body. when ?body, not ?b"
     )
 
 
 def test_when_variable_expansion(parser):
     rule = textwrap.dedent("""\
     @rule-name ?a :- ?b, ?body*. ->
-        {p} :- $body. when $body/vars
+        {p} :- ?body. when ?body/vars
     """)
     parsed = parser.parse(rule)
     assert (
         oneline(str(parsed))
-        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body/vars"
+        == "@rule-name ?a:-?b,?body*. -> {p} :- ?body. when ?body/vars"
     )
 
 
 def test_when_multiple_variable_expansion(parser):
     rule = textwrap.dedent("""\
     @rule-name ?a :- ?b, ?body*. ->
-        {p} :- $body. when $body/vars, $a/vars
+        {p} :- ?body. when ?body/vars, ?a/vars
     """)
     parsed = parser.parse(rule)
     assert (
         oneline(str(parsed))
-        == "@rule-name ?a:-?b,?body*. -> {p} :- $body. when $body/vars, $a/vars"
+        == "@rule-name ?a:-?b,?body*. -> {p} :- ?body. when ?body/vars, ?a/vars"
     )
 
 
 def test_parse_multiline_indent_success(parser):
     rule = textwrap.dedent("""\
     @rule-name ?a :- ?b, ?body*. ->
-        {p} :- $body.
+        {p} :- ?body.
     """)
     parsed = parser.parse(rule)
-    assert oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> {p} :- $body."
+    assert oneline(str(parsed)) == "@rule-name ?a:-?b,?body*. -> {p} :- ?body."
 
 
 def test_parse_multiline_indent_fail(parser):
@@ -155,9 +155,9 @@ def test_parse_multiline_indent_fail(parser):
 def test_parse_plus(parser):
     rule = textwrap.dedent("""\
     @lower-bound ?h* :- ?l{?rest*}?u, ?body*. ->
-        $h :- $1($body/vars), not $2($body/vars), $body.
-        $1($body/vars) :- $l{$rest}, $body.
-        $2($body/vars) :- $u+1{$rest}, $body.
+        ?h :- ?1(?body/vars), not ?2(?body/vars), ?body.
+        ?1(?body/vars) :- ?l{?rest}, ?body.
+        ?2(?body/vars) :- ?u+1{?rest}, ?body.
     """)
     parser.parse(rule)
 

@@ -9,17 +9,17 @@ The parser is able to handle rewriting rules such as:
 ```
 @head-cardinality ?l{?h1 : ?c1*; ?rest*}?u :- ?body*. ->
     % First transform the choice rule
-    $h1  :- $c1, $body, not $h1'.
-    $h1' :- $c, $body, not $h1.
-    {$rest} :- $body. when $rest
+    ?h1  :- ?c1, ?body, not ?h1'.
+    ?h1' :- ?c, ?body, not ?h1.
+    {?rest} :- ?body. when ?rest
     % Add the other rule
-    $1($body/vars) :- $l{$h1 : $c1; $rest}$u, $body.
-    :- not $1($body/vars), $body.
+    ?1(?body/vars) :- ?l{?h1 : ?c1; ?rest}?u, ?body.
+    :- not ?1(?body/vars), ?body.
 ```
 
 Where
   - ?l, ?h1, ?c1*, ?rest* etc. are pattern variables that can be used for rewriting
-  - $h1 etc. are references to such variables in the rewriting
+  - ?h1 etc. are references to such variables in the rewriting
   - Lines starting with % are treated as comments
   - `when` is a keyword that allows to perform a conditional rewriting
 """
@@ -49,7 +49,6 @@ dot = lexeme(string("."))
 impl = lexeme(string(":-"))
 newline = lexeme(string("\n"))
 question_mark = string("?")
-dollar = string("$")
 number = regex(r"[0-9]+")
 arith_operators = ["<=", ">=", "<", "=", "+", "-", "**", "*", "/", "\\"]
 arith = string_from(*arith_operators)
@@ -119,26 +118,29 @@ def skeleton_rule():
     # Extension that is added after the variable is expanded in the rewriting
     variable_extension = regex(r"[\_\']+[a-z0-9\'\_A-Z]*")
 
-    # reference to a pattern variable, e.g. $h
+    # reference to a pattern variable, e.g. ?h
     skeleton_reference_variable = seq(
-        dollar >> regex(r"[a-z]+[a-z0-9]*"), variable_extension.optional("")
+        question_mark >> regex(r"[a-z]+[a-z0-9]*"), variable_extension.optional("")
     ).combine(lambda var, ext: SkeletonVariable(var, ext))
 
-    # extraction of the variables inside a match. E.g. with ?body, $body/vars is
+    # extraction of the variables inside a match. E.g. with ?body, ?body/vars is
     # expanded to the variables appearing inside whatever was matched in ?body
     skeleton_reference_variable_vars = seq(
-        dollar >> regex(r"[a-z]+[a-z0-9]*") << string("/vars"),
+        question_mark >> regex(r"[a-z]+[a-z0-9]*") << string("/vars"),
         variable_extension.optional(""),
     ).combine(lambda var, ext: SkeletonVariableVarExpansion(var, ext))
 
-    # numeric variable that denotes a newly generated symbol, e.g. $1
+    # numeric variable that denotes a newly generated symbol, e.g. ?1
     skeleton_numeric_variable = seq(
-        dollar >> regex(r"[0-9]+"), variable_extension.optional("")
+        question_mark >> regex(r"[0-9]+"), variable_extension.optional("")
     ).combine(lambda name, ext: NumberSkeletonVariable(name, ext))
 
-    # named variable that denotes a newly generated symbol, e.g. $[val]
+    # named variable that denotes a newly generated symbol, e.g. ?[val]
     skeleton_new_named_variable = seq(
-        dollar >> skeleton_lbrack >> regex(r"[a-z]+[a-z0-9]*") << skeleton_rbrack,
+        question_mark
+        >> skeleton_lbrack
+        >> regex(r"[a-z]+[a-z0-9]*")
+        << skeleton_rbrack,
         variable_extension.optional(""),
     ).combine(lambda name, ext: NamedSkeletonVariable(name, ext))
 
