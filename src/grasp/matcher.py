@@ -201,30 +201,44 @@ class RuleMatcher:
             matcher = self._generate_pattern_matcher(self.parser.parse_pattern(pattern))
         else:
             matcher = self._generate_pattern_matcher(pattern)
-        return matcher.parse(rule)
 
-    def get_bindings(self, pattern: str, rule: str) -> Bindings:
-        matches = self.match(pattern, rule)
+        matches = matcher.parse(rule)
+        try:
+            self._validate_bindings(matches)
+        except ValueError as e:
+            raise parsy.ParseError(str(e))
+
+        return matches
+
+    def _validate_bindings(
+        self, matches: List[Match | str]
+    ) -> Dict[model.PatternVariable | model.PatternVariableCollection, MatchValue]:
         bindings: Dict[
             model.PatternVariable | model.PatternVariableCollection, MatchValue
-        ] = dict()
+        ] = {}
         variable_matches = [m for m in matches if not isinstance(m, str)]
 
         for match in variable_matches:
             variable, value = match.variable, match.value
 
             if value is None:
-                raise ValueError(f"None was matched to {variable}")
+                raise BindingError(f"None was matched to {variable}")
 
             if variable in bindings and bindings[variable] != value:
-                raise ValueError(
-                    f"Ambiguous binding for variable {str(variable)} and values `{bindings[variable]}` `{value}`"
+                raise BindingError(
+                    f"Variable {str(variable)} can't match on {bindings[variable]} and {value}"
                 )
 
             bindings[variable] = value
 
+        return bindings
+
+    def get_bindings(self, pattern: str, rule: str) -> Bindings:
+        matches = self.match(pattern, rule)
+        bindings = self._validate_bindings(matches)
         return Bindings(bindings)
 
 
 class BindingError(Exception):
-    pass
+    def __init__(self, msg):
+        super().__init__(msg)

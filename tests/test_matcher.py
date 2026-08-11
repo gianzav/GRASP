@@ -1,3 +1,5 @@
+import re
+
 from grasp.matcher import RuleMatcher, Match as M, atom
 from grasp.parser import RuleParser
 from grasp import matcher
@@ -507,12 +509,12 @@ def test_same_variable_twice_fail():
     rule = "head :- a, b."
     expected = []  # don't care, should raise an error
     with pytest.raises(
-        parsy.ParseError,
-        match=f"Variable ?x can't match on a and b",
+        matcher.BindingError,
+        match=re.escape(r"Variable ?x can't match on a and b"),
     ):
         parser = RuleParser()
-        matcher = RuleMatcher(parser)
-        matcher.match(pattern, rule)
+        matcher_ = RuleMatcher(parser)
+        matcher_.match(pattern, rule)
 
 
 def test_same_variable_twice_success():
@@ -528,14 +530,18 @@ def test_same_variable_twice_success():
     ]
     _test_match(pattern, rule, expected)
 
+
 def test_match_atom_name():
     pattern = r"?name(?args*)."
     rule = "p(1,2,3)."
     expected = [
         M(PV("name"), _atom("p")),
         "(",
-        M(PVC("args"), [model.Integer(1), ",", model.Integer(2), ",", model.Integer(3)]),
+        M(
+            PVC("args"),
+            [model.Integer(1), ",", model.Integer(2), ",", model.Integer(3)],
+        ),
         ")",
-        "."
+        ".",
     ]
-    _test_match(pattern,rule,expected)
+    _test_match(pattern, rule, expected)
