@@ -483,6 +483,14 @@ class Pattern:
             return self.tokens == other.tokens
         return NotImplemented
 
+    @property
+    def variables(self):
+        return set(
+            var
+            for var in self.tokens
+            if isinstance(token, (PatternVariable, PatternVariableCollection))
+        )
+
 
 @dataclass
 class PatternAlternative:
