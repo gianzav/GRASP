@@ -26,6 +26,7 @@ class Context:
 
 
 def repl(ctx: Context):
+    debug = False
 
     while True:
         inp = input("::> ").strip()
@@ -40,6 +41,15 @@ def repl(ctx: Context):
                     print("No rule defined")
             case ":exit":
                 sys.exit(0)
+            case ":debug":
+                debug = not debug
+                if debug:
+                    logging.basicConfig(level=logging.DEBUG)
+                    print("Debugging enabled")
+                else:
+                    logging.disable()
+                    print("Debugging disabled")
+
             case _:
                 evaluate(inp, ctx)
 
