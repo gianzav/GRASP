@@ -202,13 +202,17 @@ class RuleMatcher:
             matcher = parsy.alt(
                 *(self._generate_pattern_matcher(p) for p in alternatives)
             )
+            variables = set.union(*(p.variables for p in alternatives))
         elif isinstance(pattern, model.PatternAlternative):
             matcher = parsy.alt(*(self._generate_pattern_matcher(p) for p in pattern))
+            variables = set.union(*(p.variables for p in pattern))
         else:  # model.Pattern
             assert isinstance(pattern, model.Pattern)
             matcher = self._generate_pattern_matcher(pattern)
+            variables = pattern.variables
 
         matches = matcher.parse(rule)
+        self._validate_bindings(matches, variables)
         return matches
 
     def _validate_bindings(

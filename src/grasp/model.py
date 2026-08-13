@@ -488,7 +488,7 @@ class Pattern:
         return set(
             var
             for var in self.tokens
-            if isinstance(token, (PatternVariable, PatternVariableCollection))
+            if isinstance(var, (PatternVariable, PatternVariableCollection))
         )
 
 
