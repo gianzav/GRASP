@@ -101,7 +101,7 @@ class RuleWriter:
                     # makes sense:
                     # - skip if result already ends with a separator
                     # - skip if result ends with ':-' (don't insert comma after ':-')
-                    if result.endswith(':-'):
+                    if result.endswith(":-"):
                         pass
                     elif result and result[-1] in separators:
                         pass
@@ -110,7 +110,7 @@ class RuleWriter:
                         last_was_empty = False
                 else:
                     # Ensure a space after ':-' before word tokens (not punctuation)
-                    if result.endswith(':-') and token not in {",", ";", ":", " ", "."}:
+                    if result.endswith(":-") and token not in {",", ";", ":", " ", "."}:
                         result += " "
                     result += token
                     last_was_empty = False
