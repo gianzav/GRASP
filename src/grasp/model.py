@@ -539,7 +539,7 @@ class Skeleton:
 @dataclass
 class RewritingRule:
     name: str
-    pattern: Pattern
+    pattern: PatternAlternative
     skeletons: Sequence[Skeleton]
 
     def __str__(self):
