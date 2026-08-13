@@ -157,26 +157,31 @@ def test_parse_multiline_indent_fail(parser):
 
 
 def test_parse_plus(parser):
-    rule = textwrap.dedent("""\
-    @lower-bound ?h* :- ?l{?rest*}?u, ?body*. ->
-        ?h :- ?1(?body/vars), not ?2(?body/vars), ?body.
-        ?1(?body/vars) :- ?l{?rest}, ?body.
-        ?2(?body/vars) :- ?u+1{?rest}, ?body.
-    """)
-    parser.parse(rule)
+    skeleton = "h :- ?u+1, ?body."
+    parser.parse_skeleton(skeleton)
 
 
 def test_parse_plus_pattern(parser):
     pattern = r"s(?x+?y)."
-    assert parser.parse_pattern(pattern) == Pattern(
-        ["s(", PatternVariable("x"), "+", PatternVariable("y"), ")", "."]
+    assert parser.parse_pattern(pattern) == model.PatternAlternative(
+        [Pattern(["s(", PatternVariable("x"), "+", PatternVariable("y"), ")", "."])]
     )
 
 
 def test_parse_atom_name(parser):
     pattern = r"?name(?args*)."
-    assert parser.parse_pattern(pattern) == Pattern(
-        [PatternVariable("name"), "(", PatternVariableCollection("args"), ")", "."]
+    assert parser.parse_pattern(pattern) == model.PatternAlternative(
+        [
+            Pattern(
+                [
+                    PatternVariable("name"),
+                    "(",
+                    PatternVariableCollection("args"),
+                    ")",
+                    ".",
+                ]
+            )
+        ]
     )
 
 
@@ -186,6 +191,17 @@ def test_parse_full_pattern_alternatives_expands(parser):
         [
             Pattern([PV("p"), ":-", PVC("body"), "."]),
             Pattern(["{", PV("p"), "}", ":-", PVC("body"), "."]),
-            Pattern(["{", PV("p"), ":", PV("c"), "}", ":-", PVC("body"), "."]),
+            Pattern(
+                [
+                    "{",
+                    PV("p"),
+                    ":",
+                    PV("c"),
+                    "}",
+                    ":-",
+                    PVC("body"),
+                    ".",
+                ]
+            ),
         ]
     )

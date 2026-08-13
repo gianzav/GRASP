@@ -163,11 +163,13 @@ def skeleton_rule():
     space = regex(r"\s+")
 
     # Split punctuation so separators are separate tokens in skeleton rules.
-    skeleton_word = regex(r"[A-Za-z0-9\-\{\}\(\)]+")
+    skeleton_word = regex(r"[A-Za-z0-9\-\{\}\(\)]+") | arith
     skeleton_punct = regex(r"[,;:]")
 
     # Rule tokens with space - captures tokens interspersed with spaces
-    skeleton_rule_tokens = (skeleton_variable | skeleton_word | skeleton_punct | space).at_least(1)
+    skeleton_rule_tokens = (
+        skeleton_variable | skeleton_word | skeleton_punct | space
+    ).at_least(1)
 
     skeleton_rule_head = skeleton_rule_tokens
     skeleton_rule_body = skeleton_rule_tokens
