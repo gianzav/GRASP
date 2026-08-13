@@ -55,7 +55,10 @@ arith = string_from(*arith_operators)
 
 # Skeleton-specific punctuation (preserves newlines)
 skeleton_dot = skeleton_lexeme(string("."))
-skeleton_impl = skeleton_lexeme(string(":-"))
+# Do not consume following space for ':-' here; keep it as an explicit token
+# so skeleton rules like ':- p' produce a separate space token that the writer
+# can output. Using `skeleton_lexeme` would eat the space.
+skeleton_impl = string(":-")
 
 # Primitives
 
@@ -159,8 +162,12 @@ def skeleton_rule():
     # Capture whitespace as tokens
     space = regex(r"\s+")
 
+    # Split punctuation so separators are separate tokens in skeleton rules.
+    skeleton_word = regex(r"[A-Za-z0-9\-\{\}\(\)]+")
+    skeleton_punct = regex(r"[,;:]")
+
     # Rule tokens with space - captures tokens interspersed with spaces
-    skeleton_rule_tokens = (skeleton_variable | rule_tokens | space).at_least(1)
+    skeleton_rule_tokens = (skeleton_variable | skeleton_word | skeleton_punct | space).at_least(1)
 
     skeleton_rule_head = skeleton_rule_tokens
     skeleton_rule_body = skeleton_rule_tokens

@@ -3,6 +3,7 @@ from grasp.matcher import Bindings, atom
 from grasp.writer import RuleWriter
 from grasp.model import PatternVariable as PV, PatternVariableCollection as PVC
 from grasp.parser import RuleParser
+from grasp import model
 
 
 def _atom(s: str):
@@ -187,3 +188,51 @@ def test_extension_on_variable_expansion_collection():
     )
     expected = "h :- f(X',Y',Z')."
     _test_write(skeleton, bindings, expected)
+
+
+def test_write_binding_error():
+    # a variable that doesn't appear in a pattern
+    pass
+
+
+def test_write_pattern_alternatives_no_variable_success():
+    # pattern = "{?p : ?c} :- ?body*. | {?p} :- ?body*. | ?p :- ?body*."
+    skeleton = ":- ?p, ?c."
+    bindings = Bindings({PV("p"): _atom("p"), PV("c"): model.String("")})
+    expected = ":- p."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_write_pattern_alternatives_no_var_expansion():
+    skeleton = ":- p, ?x/vars, q."
+    bindings = Bindings({PV("x"): model.String("")})
+    expected = ":- p, q."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_write_pattern_alternatives_no_var_first_in_rule():
+    skeleton = ":- ?x, p, q."
+    bindings = Bindings({PV("x"): model.String("")})
+    expected = ":- p, q."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_write_pattern_alternatives_no_var_middle_in_rule():
+    skeleton = ":- ?x, p, q."
+    bindings = Bindings({PV("x"): model.String("")})
+    expected = ":- p, q."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_write_pattern_alternatives_no_var_in_condition_on_right():
+    skeleton = ":- 1{p : ?x}2."
+    bindings = Bindings({PV("x"): model.String("")})
+    expected = ":- 1{p}2."
+    _test_write(skeleton, bindings, expected)
+
+
+# def test_write_pattern_alternatives_no_var_in_condition_on_left():
+#     skeleton = ":- q, 1{?x : p}2."
+#     bindings = Bindings({PV("x"): model.String("")})
+#     expected = ":- q."
+#     _test_write(skeleton, bindings, expected)

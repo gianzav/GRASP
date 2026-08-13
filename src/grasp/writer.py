@@ -31,7 +31,7 @@ def extend_token(token: SkeletonVariable, value: str) -> str:
 def condition_satisfied(condition: model.SkeletonCondition, bindings: Bindings) -> bool:
     value = bindings[condition.variable]
 
-    if not value:
+    if not value or value == model.String(""):
         return not condition._positive
 
     if isinstance(condition.variable, SkeletonVariableVarExpansion):
@@ -69,6 +69,10 @@ def when_satisfied(
         )
 
 
+def remove_trailing_separators(s: str):
+    return s.rstrip(" ,:;")
+
+
 class UnboundVariableError(Exception):
     pass
 
@@ -81,15 +85,35 @@ class RuleWriter:
         Gives the rewriting based on `skeleton` and the `bindings`.
         """
         result = ""
+        last_was_empty = False
 
         # empty result if the 'when' condition of the skeleton is not satisfied
-
         if not when_satisfied(skeleton.when, bindings, rule_name):
             return ""
 
         for token in skeleton.tokens:
             if isinstance(token, str):
-                result += token
+                separators = {",", ";", ":", " "}
+                if last_was_empty and token in separators:
+                    # When a variable expanded to empty, we removed any trailing
+                    # separators from the current result. If a separator follows
+                    # the empty variable in the tokens, append it only when it
+                    # makes sense:
+                    # - skip if result already ends with a separator
+                    # - skip if result ends with ':-' (don't insert comma after ':-')
+                    if result.endswith(':-'):
+                        pass
+                    elif result and result[-1] in separators:
+                        pass
+                    else:
+                        result += token
+                        last_was_empty = False
+                else:
+                    # Ensure a space after ':-' before word tokens (not punctuation)
+                    if result.endswith(':-') and token not in {",", ";", ":", " ", "."}:
+                        result += " "
+                    result += token
+                    last_was_empty = False
             elif isinstance(token, (NumberSkeletonVariable, NamedSkeletonVariable)):
                 try:
                     value = bindings[token]
@@ -106,6 +130,15 @@ class RuleWriter:
                         f"Variable {str(token)} unbound in rule '{rule_name}'"
                     )
                 var = bindings.get_pattern_variable(token)
+
+                # empty string binding because variable was present in pattern alternatives but was not matched against anything
+                if bindings[token] == model.String(""):
+                    # then any separator present before the "empty match" should be removed since nothing will be generated
+                    result = remove_trailing_separators(result)
+                    last_was_empty = True
+                    continue
+                else:
+                    last_was_empty = False
 
                 match (token, var):
                     case (SkeletonVariableVarExpansion(), PatternVariable()):
