@@ -196,10 +196,18 @@ class RuleMatcher:
                     )
         return parser
 
-    def match(self, pattern: str | model.Pattern, rule: str) -> List[Match | str]:
+    def match(
+        self, pattern: str | model.Pattern | model.PatternAlternative, rule: str
+    ) -> List[Match | str]:
         if isinstance(pattern, str):
-            matcher = self._generate_pattern_matcher(self.parser.parse_pattern(pattern))
-        else:
+            alternatives: model.PatternAlternative = self.parser.parse_pattern(pattern)
+            matcher = parsy.alt(
+                *(self._generate_pattern_matcher(p) for p in alternatives)
+            )
+        elif isinstance(pattern, model.PatternAlternative):
+            matcher = parsy.alt(*(self._generate_pattern_matcher(p) for p in pattern))
+        else:  # model.Pattern
+            assert isinstance(pattern, model.Pattern)
             matcher = self._generate_pattern_matcher(pattern)
 
         matches = matcher.parse(rule)

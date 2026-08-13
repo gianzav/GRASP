@@ -545,3 +545,34 @@ def test_match_atom_name():
         ".",
     ]
     _test_match(pattern, rule, expected)
+
+
+def test_match_pattern_alternatives():
+    pattern = "{?p : ?c} :- ?body*. | {?p} :- ?body*. | ?p :- ?body*."
+    rule = "head :- body."
+    expected = [M(PV("p"), _atom("head")), ":-", M(PVC("body"), [_atom("body")]), "."]
+    _test_match(pattern, rule, expected)
+
+    rule = "{p} :- body."
+    expected = [
+        "{",
+        M(PV("p"), _atom("p")),
+        "}",
+        ":-",
+        M(PVC("body"), [_atom("body")]),
+        ".",
+    ]
+    _test_match(pattern, rule, expected)
+
+    rule = "{p : c} :- body."
+    expected = [
+        "{",
+        M(PV("p"), _atom("p")),
+        ":",
+        M(PV("c"), _atom("c")),
+        "}",
+        ":-",
+        M(PVC("body"), [_atom("body")]),
+        ".",
+    ]
+    _test_match(pattern, rule, expected)

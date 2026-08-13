@@ -234,11 +234,8 @@ class RuleParser:
 
         return rules
 
-    def parse_pattern(self, pattern: str) -> Pattern | PatternAlternative:
-        parsed = alternatives.parse(pattern)
-        if len(parsed) == 1:
-            return parsed[0]  # single pattern
-        return parsed  # multiple pattern alternatives
+    def parse_pattern(self, pattern: str) -> PatternAlternative:
+        return alternatives.parse(pattern)
 
     def parse_skeleton(self, skeleton: str):
         return skeleton_rule.parse(skeleton)
