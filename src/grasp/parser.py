@@ -210,7 +210,7 @@ def indent():
 @generate
 def rewriting_rule():
     name = yield whitespace >> rule_name
-    pattern = yield pattern_rule()
+    pattern = yield alternatives
     arrow = whitespace << string("->") >> string(" ").many()
     yield arrow
 
