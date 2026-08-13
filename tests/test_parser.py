@@ -3,8 +3,12 @@ import textwrap
 import parsy
 import pytest
 from grasp.model import PatternVariableCollection
+import grasp.model as model
 from grasp.parser import Pattern, PatternVariable, RuleParser
 from pytest import fixture
+
+PV = PatternVariable
+PVC = PatternVariableCollection
 
 
 @fixture
@@ -173,4 +177,15 @@ def test_parse_atom_name(parser):
     pattern = r"?name(?args*)."
     assert parser.parse_pattern(pattern) == Pattern(
         [PatternVariable("name"), "(", PatternVariableCollection("args"), ")", "."]
+    )
+
+
+def test_parse_full_pattern_alternatives_expands(parser):
+    pattern = "?p :- ?body*. | {?p} :- ?body*. | {?p : ?c} :- ?body*."
+    assert parser.parse_pattern(pattern) == model.PatternAlternative(
+        [
+            Pattern([PV("p"), ":-", PVC("body"), "."]),
+            Pattern(["{", PV("p"), "}", ":-", PVC("body"), "."]),
+            Pattern(["{", PV("p"), ":", PV("c"), "}", ":-", PVC("body"), "."]),
+        ]
     )

@@ -64,6 +64,8 @@ string_part = regex(r'[^"\\]+')
 rule_name = lexeme(at >> regex(r"[A-Za-z\-0-9]+"))
 rule_tokens = regex(r"[A-Za-z0-9\-\{\},:;()]+") | arith
 
+pipe = lexeme(string("|"))
+
 
 def pattern_rule():
     pattern_variable = lexeme(question_mark >> regex(r"[a-z]+[a-z0-9]*")).map(
@@ -106,6 +108,9 @@ def pattern_rule():
     ).combine(lambda x, y: x + [y])
 
     return (pattern_constraint | pattern_fact | pattern_full_rule).map(Pattern)
+
+
+alternatives = pattern_rule().sep_by(pipe).map(PatternAlternative)
 
 
 @generate
@@ -229,8 +234,11 @@ class RuleParser:
 
         return rules
 
-    def parse_pattern(self, pattern: str):
-        return pattern_rule().parse(pattern)
+    def parse_pattern(self, pattern: str) -> Pattern | PatternAlternative:
+        parsed = alternatives.parse(pattern)
+        if len(parsed) == 1:
+            return parsed[0]  # single pattern
+        return parsed  # multiple pattern alternatives
 
     def parse_skeleton(self, skeleton: str):
         return skeleton_rule.parse(skeleton)

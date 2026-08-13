@@ -478,6 +478,33 @@ class Pattern:
     def __str__(self):
         return "".join(str(x) for x in self.tokens)
 
+    def __eq__(self, other):
+        if isinstance(other, Pattern):
+            return self.tokens == other.tokens
+        return NotImplemented
+
+
+@dataclass
+class PatternAlternative:
+    patterns: Sequence[Pattern]
+
+    def __len__(self):
+        return len(self.patterns)
+
+    def __iter__(self):
+        return iter(self.patterns)
+
+    def __getitem__(self, index):
+        return self.patterns[index]
+
+    def __str__(self):
+        return " | ".join(str(pattern) for pattern in self.patterns)
+
+    def __eq__(self, other):
+        if isinstance(other, PatternAlternative):
+            return self.patterns == other.patterns
+        return False
+
 
 @dataclass
 class SkeletonCondition:
