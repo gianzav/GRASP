@@ -132,7 +132,8 @@ class RuleWriter:
                 var = bindings.get_pattern_variable(token)
 
                 # empty string binding because variable was present in pattern alternatives but was not matched against anything
-                if bindings[token] == model.String(""):
+                # or empty list binding because PatternVariableCollection matched against nothing
+                if bindings[token] == model.String("") or bindings[token] == []:
                     # then any separator present before the "empty match" should be removed since nothing will be generated
                     result = remove_trailing_separators(result)
                     last_was_empty = True

@@ -576,3 +576,10 @@ def test_match_pattern_alternatives():
         ".",
     ]
     _test_match(pattern, rule, expected)
+
+
+def test_match_pattern_alternatives_no_match():
+    pattern = "{?h* : ?c*; ?rest[;:,]*} :- ?body*. | {?h* ; ?rest[;:,]*} :- ?body*. | {?h* : ?c*} :- ?body*. | {?h*} :- ?body*."
+    rule = "{a}:-."
+    expected = ["{", M(PVC("h"), [_atom("a")]), "}", ":-", M(PVC("body"), []), "."]
+    _test_match(pattern, rule, expected)

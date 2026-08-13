@@ -170,7 +170,7 @@ def test_vars_expansion():
             PV("u"): "33",
         }
     )
-    expected = "_new0(X,Y) :- 1{a : b; }33, p(X),q(Y)."
+    expected = "_new0(X,Y) :- 1{a : b}33, p(X),q(Y)."
     _test_write(skeleton, bindings, expected)
 
 
@@ -228,6 +228,20 @@ def test_write_pattern_alternatives_no_var_in_condition_on_right():
     skeleton = ":- 1{p : ?x}2."
     bindings = Bindings({PV("x"): model.String("")})
     expected = ":- 1{p}2."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_write_with_empty_pattern_variable_collection_match_remove_trailing_separators():
+    skeleton = "?h :- ?c, ?body, not ?h'."
+    bindings = Bindings(
+        {
+            PVC("h"): [_atom("a")],
+            PVC("c"): model.String(""),
+            PVC("rest"): model.String(""),
+            PVC("body"): model.String(""),
+        }
+    )
+    expected = "a :- not a'."
     _test_write(skeleton, bindings, expected)
 
 
