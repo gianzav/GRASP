@@ -7,26 +7,24 @@ Affiliation: AAU Klagenfurt
 Generation of a custom parser based on a user-defined pattern.
 """
 
-import parsy
-from grasp import model
-from dataclasses import dataclass
-from typing import List, Optional, Dict, NewType
-from grasp.parser import (
-    whitespace,
-    RuleParser,
-    lexeme,
-    comma,
-    semicolon,
-    arith,
-    arith_operators,
-)
-from grasp.model import (
-    SkeletonVariable,
-    NumberSkeletonVariable,
-    NamedSkeletonVariable,
-)
 import collections
 import itertools
+from dataclasses import dataclass
+from typing import Dict, List, NewType, Optional, Set
+
+import parsy
+
+from grasp import model
+from grasp.model import NamedSkeletonVariable, NumberSkeletonVariable, SkeletonVariable
+from grasp.parser import (
+    RuleParser,
+    arith,
+    arith_operators,
+    comma,
+    lexeme,
+    semicolon,
+    whitespace,
+)
 
 VarName = NewType("VarName", str)
 
@@ -211,15 +209,12 @@ class RuleMatcher:
             matcher = self._generate_pattern_matcher(pattern)
 
         matches = matcher.parse(rule)
-        try:
-            self._validate_bindings(matches)
-        except ValueError as e:
-            raise parsy.ParseError(str(e))
-
         return matches
 
     def _validate_bindings(
-        self, matches: List[Match | str]
+        self,
+        matches: List[Match | str],
+        variables: Set[model.PatternVariable | model.PatternVariableCollection],
     ) -> Dict[model.PatternVariable | model.PatternVariableCollection, MatchValue]:
         bindings: Dict[
             model.PatternVariable | model.PatternVariableCollection, MatchValue
@@ -239,11 +234,19 @@ class RuleMatcher:
 
             bindings[variable] = value
 
+        for var in variables:
+            # variable was mentioned in one of the pattern alternatives but got no match
+            if var not in bindings:
+                bindings[var] = model.String("")
+
         return bindings
 
     def get_bindings(self, pattern: str, rule: str) -> Bindings:
-        matches = self.match(pattern, rule)
-        bindings = self._validate_bindings(matches)
+        alternatives = self.parser.parse_pattern(pattern)
+        # extract all the variables appearing in the alternatives to handle unbound variables later
+        variables = set.union(*(pattern.variables for pattern in alternatives))
+        matches = self.match(alternatives, rule)
+        bindings = self._validate_bindings(matches, variables)
         return Bindings(bindings)
 
 
