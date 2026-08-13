@@ -210,6 +210,56 @@ def test_write_pattern_alternatives_no_var_expansion():
     _test_write(skeleton, bindings, expected)
 
 
+def test_write_empty_pattern_variable_collection_removes_trailing_separators():
+    skeleton = ":- p, ?body, q."
+    bindings = Bindings({PVC("body"): []})
+    expected = ":- p, q."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_write_empty_var_expansion_removes_trailing_separators():
+    skeleton = ":- p, ?body/vars, q."
+    bindings = Bindings({PVC("body"): []})
+    expected = ":- p, q."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_write_empty_multiple_empty_var_expansion():
+    skeleton = "?h :- count(?pre/vars, ?body/vars, C), ?body, C >= ?l."
+    bindings = Bindings(
+        {
+            PVC("h"): [_atom("h")],
+            PVC("pre"): [],
+            PVC("body"): [],
+            PV("l"): model.Integer(1),
+        }
+    )
+    expected = "h :- count(C), C >= 1."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_write_empty_multiple_empty_var_expansion_2():
+    skeleton = "?[val](?pre/vars, ?bi/vars, ?body/vars) :- ?bi, ?body."
+    bindings = Bindings(
+        {
+            PVC("h"): [_atom("h")],
+            PVC("pre"): [_atom("p(X)")],
+            PVC("body"): [_atom("q(Y)")],
+            PV("l"): model.Integer(1),
+            PVC("bi"): [_atom("a")],
+        }
+    )
+    expected = "_new0(X, Y) :- a, q(Y)."
+    _test_write(skeleton, bindings, expected)
+
+
+def test_write_empty_var_expansion_removes_arithmetic_and_comparison_operators():
+    skeleton = ":- p, ?x/vars >= 1."
+    bindings = Bindings({PV("x"): model.String("")})
+    expected = ":- p >= 1."
+    _test_write(skeleton, bindings, expected)
+
+
 def test_write_pattern_alternatives_no_var_first_in_rule():
     skeleton = ":- ?x, p, q."
     bindings = Bindings({PV("x"): model.String("")})

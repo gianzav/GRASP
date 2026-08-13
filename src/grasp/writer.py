@@ -70,7 +70,13 @@ def when_satisfied(
 
 
 def remove_trailing_separators(s: str):
-    return s.rstrip(" ,:;")
+    if s.rstrip().endswith(":-"):
+        return s
+    return s.rstrip(" ,;:+-*/\\<>=")
+
+
+def is_empty_binding(value):
+    return value is None or value == model.String("") or value == []
 
 
 class UnboundVariableError(Exception):
@@ -105,6 +111,8 @@ class RuleWriter:
                         pass
                     elif result and result[-1] in separators:
                         pass
+                    elif result and result[-1] in "([{":
+                        pass
                     else:
                         result += token
                         last_was_empty = False
@@ -131,9 +139,9 @@ class RuleWriter:
                     )
                 var = bindings.get_pattern_variable(token)
 
-                # empty string binding because variable was present in pattern alternatives but was not matched against anything
-                # or empty list binding because PatternVariableCollection matched against nothing
-                if bindings[token] == model.String("") or bindings[token] == []:
+                # empty binding because the variable was present in the pattern but did not match anything,
+                # or because a collection match was empty, or because a /vars expansion was empty.
+                if is_empty_binding(bindings[token]):
                     # then any separator present before the "empty match" should be removed since nothing will be generated
                     result = remove_trailing_separators(result)
                     last_was_empty = True
@@ -144,16 +152,21 @@ class RuleWriter:
                 match (token, var):
                     case (SkeletonVariableVarExpansion(), PatternVariable()):
                         if isinstance(value, model.Atom):
-                            result += ",".join(str(v) for v in value.variables)
+                            expanded = ",".join(str(v) for v in value.variables)
                         elif isinstance(value, model.Variable):
-                            result += str(value)
+                            expanded = str(value)
                         else:
                             raise NotImplementedError(
                                 f"Variable extension not implemented for {type(value)}"
                             )
+                        if not expanded:
+                            result = remove_trailing_separators(result)
+                            last_was_empty = True
+                            continue
+                        result += expanded
                     case (SkeletonVariableVarExpansion(), PatternVariableCollection()):
                         if isinstance(value, list):
-                            result += ",".join(
+                            expanded = ",".join(
                                 extend_token(token, str(v))
                                 for atom in value
                                 if isinstance(atom, model.Atom)
@@ -163,6 +176,11 @@ class RuleWriter:
                             raise NotImplementedError(
                                 f"Variable expansion not implemented for {type(value)}"
                             )
+                        if not expanded:
+                            result = remove_trailing_separators(result)
+                            last_was_empty = True
+                            continue
+                        result += expanded
                     case (SkeletonVariable(), PatternVariableCollection()):
                         # if token.extension != "":
                         #     raise NotImplementedError(
