@@ -245,11 +245,10 @@ class RuleMatcher:
 
         return bindings
 
-    def get_bindings(self, pattern: str, rule: str) -> Bindings:
-        alternatives = self.parser.parse_pattern(pattern)
+    def get_bindings(self, pattern: model.PatternAlternative, rule: str) -> Bindings:
         # extract all the variables appearing in the alternatives to handle unbound variables later
-        variables = set.union(*(pattern.variables for pattern in alternatives))
-        matches = self.match(alternatives, rule)
+        variables = set.union(*(p.variables for p in pattern))
+        matches = self.match(pattern, rule)
         bindings = self._validate_bindings(matches, variables)
         return Bindings(bindings)
 
