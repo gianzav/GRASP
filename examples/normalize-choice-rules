@@ -1,80 +1,14 @@
-% %%% CONVERSION OF CHOICE RULES %%%
-@choice {?h* : ?c*; ?rest[;:,]*} :- ?body*. ->
+%%% Normalization rules from "Debugging non-ground ASP programs with Choice  Rules, Cardinality and Weight Constraints", Polleres et al., 2013
+%% Assume in input non-disjunctive normal programs with choice rules and cardinality constraints
+
+
+%%% CONVERSION OF CHOICE RULES %%%
+
+@choice
+	{?h* : ?c*; ?rest[;:,]*} :- ?body*. |
+    	{?h* ; ?rest[;:,]*} :- ?body*.      |
+    	{?h* : ?c*} :- ?body*.              |
+    	{?h*} :- ?body*.                    ->
     ?h  :- ?c, ?body, not ?h'.
     ?h' :- ?c, ?body, not ?h.
     {?rest} :- ?body. when ?rest
-
-@choice1 {?h* : ?c*} :- ?body*. ->
-    ?h  :- ?c, ?body, not ?h'.
-    ?h' :- ?c, ?body, not ?h.
-
-@choice2 {?h* ; ?rest[;:,]*} :- ?body*. ->
-    ?h  :- ?body, not ?h'.
-    ?h' :- ?body, not ?h.
-    {?rest} :- ?body. when ?rest
-
-@choice3 {?h*} :- ?body*. ->
-    ?h  :- ?body, not ?h'.
-    ?h' :- ?body, not ?h.
-
-%%% CARDINALITY CONSTRAINT IN THE HEAD %%%
-%@head-cardinality ?l{?h1* : ?c*; ?rest[;:,]*}?u :- ?body*. ->
-%    ?h1  :- ?c, ?body, not ?h1'.
-%    ?h1' :- ?c, ?body, not ?h1.
-%    {?rest} :- ?body. when ?rest
-%    ?1(?body/vars) :- ?l{?h1 : ?c; ?rest}?u, ?body.
-%    :- not ?1(?body/vars), ?body.
-%
-%@head-cardinality1 ?l{?h1* ; ?rest[;:,]*}?u :- ?body*. ->
-%    ?h1  :- ?body, not ?h1'.
-%    ?h1' :- ?body, not ?h1.
-%    {?rest} :- ?body. when ?rest
-%    ?1(?body/vars) :- ?l{?h1 ; ?rest}?u, ?body.
-%    :- not ?1(?body/vars), ?body.
-%
-%@head-cardinality2 ?l{?h1*}?u :- ?body*. ->
-%    ?h1  :- ?body, not ?h1'.
-%    ?h1' :- ?body, not ?h1.
-%    ?1(?body/vars) :- ?l{?h1}?u, ?body.
-%    :- not ?1(?body/vars), ?body.
-%
-%%%% CARDINALITY CONSTRAINT IN NEGATIVE BODY %%%
-%%% Case in which the cardinality constraint is somewhere in the body
-%@negative-body-cardinality ?h* :- ?pre* not ?l{?rest[:;,]*}?u, ?post*. ->
-%    ?1(?pre/vars, ?post/vars) :- ?pre ?l{?rest}?u, ?post.               when ?pre/vars, ?post/vars
-%    ?1(?pre/vars) :- ?pre ?l{?rest}?u, ?post.                           when ?pre/vars, not ?post/vars
-%    ?1(?post/vars) :- ?pre ?l{?rest}?u, ?post.                          when ?post/vars, not ?pre/vars
-%    %
-%    ?h :- ?pre not ?1(?pre/vars, ?post/vars), ?post.                    when ?pre/vars, ?post/vars
-%    ?h :- ?pre not ?1(?pre/vars), ?post.                                when ?pre/vars, not ?post/vars
-%    ?h :- ?pre not ?1(?post/vars), ?post.                               when not ?pre/vars, ?post/vars
-%
-%%% Case in which the cardinality constraint is the last atom in the body
-%@negative-body-cardinality1 ?h* :- ?pre* not ?l{?rest[:;,]*}?u. ->
-%    ?1(?pre/vars) :- ?pre ?l{?rest}?u.
-%    ?h :- ?pre not ?1(?pre/vars).
-%
-%%%% TRANSFORM CARDINALITY CONSTRAINTS TO HAVE ONLY LOWER BOUNDS %%%
-%%% Cardinality constraint somewhere in the body
-%@lower-bound ?h* :- ?pre* ?l{?rest*}?u, ?post*. ->
-%	?h :- ?1(?pre/vars, ?post/vars), not ?2(?pre/vars, ?post/vars), ?post.      when ?pre/vars, ?post/vars
-%	?1(?pre/vars, ?post/vars) :- ?pre ?l{?rest}, ?post.                         when ?pre/vars, ?post/vars
-%	?2(?pre/vars, ?post/vars) :- ?pre ?u+1{?rest}, ?post.                       when ?pre/vars, ?post/vars
-%%
-%	?h :- ?1(?pre/vars), not ?2(?pre/vars), ?post.                              when ?pre/vars, not ?post/vars
-%	?1(?pre/vars) :- ?pre ?l{?rest}, ?post.                                     when ?pre/vars, not ?post/vars
-%	?2(?pre/vars) :- ?pre ?u+1{?rest}, ?post.                                   when ?pre/vars, not ?post/vars
-%%
-%	?h :- ?1(?post/vars), not ?2(?post/vars), ?post.                            when ?post/vars, not ?pre/vars
-%	?1(?post/vars) :- ?pre ?l{?rest}, ?post.                                    when ?post/vars, not ?pre/vars
-%	?2(?post/vars) :- ?pre ?u+1{?rest}, ?post.                                  when ?post/vars, not ?pre/vars
-%%
-%	?h :- ?1, not ?2, ?post.                                                    when not ?post/vars, not ?pre/vars
-%	?1 :- ?pre ?l{?rest}, ?post.                                                when not ?post/vars, not ?pre/vars
-%	?2 :- ?pre ?u+1{?rest}, ?post.                                              when not ?post/vars, not ?pre/vars
-%
-%%% Cardinality constraint as the last term in the body
-%%% @lower-bound1 ?h* :- ?l{?rest*}?u, ?body*. ->
-%%% 	?h :- ?1(?body/vars), not ?2(?body/vars), ?body.
-%%% 	?1(?body/vars) :- ?l{?rest}, ?body.
-%%% 	?2(?body/vars) :- ?u+1{?rest}, ?body.

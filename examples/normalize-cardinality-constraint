@@ -1,0 +1,57 @@
+%%% Normalization rules from "Debugging non-ground ASP programs with Choice  Rules, Cardinality and Weight Constraints", Polleres et al., 2013
+%% Assume in input non-disjunctive normal programs with choice rules and cardinality constraints
+
+%%% CARDINALITY CONSTRAINT IN THE HEAD %%%
+@head-cardinality
+	?l{?h1* : ?c*; ?rest[;:,]*}?u :- ?body*. |
+        ?l{?h1* : ?c*; ?rest[;:,]*} :- ?body*.   | 
+        {?h1* : ?c*; ?rest[;:,]*}?u :- ?body*.   | 
+	?l{?h1* ; ?rest[;:,]*}?u :- ?body*.      |
+	?l{?h1* ; ?rest[;:,]*} :- ?body*.        |
+	{?h1* ; ?rest[;:,]*}?u :- ?body*.        |
+	?l{?h1*}?u :- ?body*.                    |
+	?l{?h1*} :- ?body*.                      | 
+	{?h1*}?u :- ?body*.                      |
+	?l{?h1* : ?c*}?u :- ?body*.              |
+	{?h1* : ?c*}?u :- ?body*.                |
+	?l{?h1* : ?c*} :- ?body*.                ->
+    ?h1  :- ?c, ?body, not ?h1'.
+    ?h1' :- ?c, ?body, not ?h1.
+    {?rest} :- ?body. when ?rest
+    ?1(?body/vars) :- ?l{?h1 : ?c; ?rest}?u, ?body.
+    :- not ?1(?body/vars), ?body.
+
+
+%%% CARDINALITY CONSTRAINT IN NEGATIVE BODY %%%
+%% Case in which the cardinality constraint is somewhere in the body
+@negative-body-cardinality
+	?h* :- ?pre* not ?l{?rest[:;,]*}?u, ?post*. |
+	?h* :- ?pre* not ?l{?rest[:;,]*}?u.         ->
+    ?1(?pre/vars, ?post/vars) :- ?pre ?l{?rest}?u, ?post.               when ?pre/vars, ?post/vars
+    ?1(?pre/vars) :- ?pre ?l{?rest}?u, ?post.                           when ?pre/vars, not ?post/vars
+    ?1(?post/vars) :- ?pre ?l{?rest}?u, ?post.                          when ?post/vars, not ?pre/vars
+    ?h :- ?pre not ?1(?pre/vars, ?post/vars), ?post.                    when ?pre/vars, ?post/vars
+    ?h :- ?pre not ?1(?pre/vars), ?post.                                when ?pre/vars, not ?post/vars
+    ?h :- ?pre not ?1(?post/vars), ?post.                               when not ?pre/vars, ?post/vars
+
+%%% TRANSFORM CARDINALITY CONSTRAINTS TO HAVE ONLY LOWER BOUNDS %%%
+%% Cardinality constraint somewhere in the body
+@lower-bound
+	?h* :- ?pre* ?l{?rest*}?u, ?post*. |  % if it's inside the body
+	?h* :- ?pre* ?l{?rest*}?u.         -> % if it's the last term in the body
+	%
+    ?h :- ?1(?pre/vars, ?post/vars), not ?2(?pre/vars, ?post/vars), ?post.      when ?pre/vars, ?post/vars
+    ?1(?pre/vars, ?post/vars) :- ?pre ?l{?rest}, ?post.                         when ?pre/vars, ?post/vars
+    ?2(?pre/vars, ?post/vars) :- ?pre ?u+1{?rest}, ?post.                       when ?pre/vars, ?post/vars
+    %
+    ?h :- ?1(?pre/vars), not ?2(?pre/vars), ?post.                              when ?pre/vars, not ?post/vars
+    ?1(?pre/vars) :- ?pre ?l{?rest}, ?post.                                     when ?pre/vars, not ?post/vars
+    ?2(?pre/vars) :- ?pre ?u+1{?rest}, ?post.                                   when ?pre/vars, not ?post/vars
+    %
+    ?h :- ?1(?post/vars), not ?2(?post/vars), ?post.                            when ?post/vars, not ?pre/vars
+    ?1(?post/vars) :- ?pre ?l{?rest}, ?post.                                    when ?post/vars, not ?pre/vars
+    ?2(?post/vars) :- ?pre ?u+1{?rest}, ?post.                                  when ?post/vars, not ?pre/vars
+    %
+    ?h :- ?1, not ?2, ?post.                                                    when not ?post/vars, not ?pre/vars
+    ?1 :- ?pre ?l{?rest}, ?post.                                                when not ?post/vars, not ?pre/vars
+    ?2 :- ?pre ?u+1{?rest}, ?post.                                              when not ?post/vars, not ?pre/vars
