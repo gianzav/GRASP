@@ -119,29 +119,59 @@ def main():
             with open(file, "r") as f:
                 text = f.read()
 
-            # remove comments and preserve newlines so rules can still be
-            # separated by blank lines or indentation.
-            cleaned_lines = []
-            for line in text.splitlines():
-                before, sep, after = line.partition("%")
-                cleaned_lines.append(before.rstrip())
-            cleaned_text = "\n".join(cleaned_lines).strip()
+                cleaned_text = clean_rule_text(text)
 
-            if not cleaned_text:
-                continue
+                if not cleaned_text:
+                    continue
 
-            try:
-                rules = ctx.parser.parse_rules(cleaned_text)
-            except parsy.ParseError as e:
-                raise ValueError(f"Failed to parse rules from file {file}: {e}")
+                try:
+                    rules = ctx.parser.parse_rules(cleaned_text)
+                except parsy.ParseError as e:
+                    raise ValueError(f"Failed to parse rules from file {file}: {e}")
 
-            for rule in rules:
-                ctx.rules.append(rule)
-
+                for rule in rules:
+                    ctx.rules.append(rule)
         if args.interactive:
             repl(ctx)
     else:
         repl(ctx)
+
+
+def clean_rule_text(text: str) -> str:
+    """Remove comments and normalize multiline pattern alternatives.
+
+    Lines that continue a pattern via a trailing ``|`` are merged into a single
+    logical line before the ``->`` arrow, while skeleton lines after the arrow are
+    left as separate lines so the rewriting parser still sees a valid rule body.
+    """
+    cleaned_lines = []
+    for line in text.splitlines():
+        content = line.split("%", 1)[0].rstrip()
+        if content.strip():
+            cleaned_lines.append(content)
+
+    normalized = []
+    pending = None
+
+    for line in cleaned_lines:
+        if pending is not None:
+            pending = pending.rstrip() + " " + line.lstrip()
+            if line.rstrip().endswith("|"):
+                continue
+            normalized.append(pending)
+            pending = None
+            continue
+
+        if line.rstrip().endswith("|"):
+            pending = line.rstrip()
+            continue
+
+        normalized.append(line)
+
+    if pending is not None:
+        normalized.append(pending)
+
+    return "\n".join(normalized).strip()
 
 
 if __name__ == "__main__":
