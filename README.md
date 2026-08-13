@@ -139,6 +139,36 @@ Example:
 grasp -i rules1 rules2
 ```
 
+### Pattern alternatives
+
+Multiple patterns can be defined for a rule using the pipe character `|`. Take for example:
+
+```text
+@rule a. | b. -> c.
+```
+
+This rule will match on `a.` and `b.`, producing `c.`. In this way we can compactly represent multiple patterns that share a body.
+Patterns are evaluated in the order of definition.
+
+If multiple pattern variables are present, not all of them might match. If a variable is declared in the pattern but doesn't match, then it is treated as "empty string" in the rewritings. The system tries to do a smart rewriting by removing trailing separators in case a pattern variable used in the rewritings has not matched against anything. Take for example the following rule:
+
+```text
+@r ?p :- b. | ?p :- ?c, not d. ->
+	:- ?p, ?c.
+```
+
+Giving `h :- b` as input to GRASP, the rule will match because of the first pattern, and produce as output `:- h`, since there was no match for the variable `?c`.
+If instead the input is `a :- b, not d.`, we get `:- a, b` as output, as the second pattern did match and `?c` is bound to `b`.
+Variables that don't match against anything are treated as false condition by the `when` keyword. For example:
+
+```
+@rule ?p :- q. | ?r :- s. ->
+      f. when ?p
+      g. when ?r
+```
+
+Produces `f.` only when the first pattern matches, and produces `g.` when the second does.
+
 ### Runtime behavior
 
 - Rules are applied exhaustively: a matched rule is replaced by its rewrite sequence until no further rewrite is possible.

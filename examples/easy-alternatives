@@ -1,0 +1,3 @@
+@rule ?p :- q. | ?r :- s. ->
+      f. when ?p
+      g. when ?r
