@@ -50,7 +50,7 @@ impl = lexeme(string(":-"))
 newline = lexeme(string("\n"))
 question_mark = string("?")
 number = regex(r"[0-9]+")
-arith_operators = ["<=", ">=", "<", "=", "+", "-", "**", "*", "/", "\\"]
+arith_operators = ["<=", ">=", "<", ">", "=", "!=", "+", "-", "**", "*", "/", "\\"]
 arith = string_from(*arith_operators)
 
 # Skeleton-specific punctuation (preserves newlines)
@@ -65,7 +65,7 @@ skeleton_impl = string(":-")
 string_part = regex(r'[^"\\]+')
 
 rule_name = lexeme(at >> regex(r"[A-Za-z\-0-9]+"))
-rule_tokens = regex(r"[A-Za-z0-9\-\{\},:;()]+") | arith
+rule_tokens = regex(r"[A-Za-z0-9\-\{\},:;()#&]+") | arith
 
 pipe = lexeme(string("|"))
 
@@ -163,7 +163,7 @@ def skeleton_rule():
     space = regex(r"\s+")
 
     # Split punctuation so separators are separate tokens in skeleton rules.
-    skeleton_word = regex(r"[A-Za-z0-9\-\{\}\(\)]+") | arith
+    skeleton_word = regex(r"[A-Za-z0-9\-\{\}\(\)&#]+") | arith
     skeleton_punct = regex(r"[,;:]")
 
     # Rule tokens with space - captures tokens interspersed with spaces
