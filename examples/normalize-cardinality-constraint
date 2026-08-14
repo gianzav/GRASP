@@ -27,12 +27,8 @@
 @negative-body-cardinality
 	?h* :- ?pre* not ?l{?rest[:;,]*}?u, ?post*. |
 	?h* :- ?pre* not ?l{?rest[:;,]*}?u.         ->
-    ?1(?pre/vars, ?post/vars) :- ?pre ?l{?rest}?u, ?post.               when ?pre/vars, ?post/vars
-    ?1(?pre/vars) :- ?pre ?l{?rest}?u, ?post.                           when ?pre/vars, not ?post/vars
-    ?1(?post/vars) :- ?pre ?l{?rest}?u, ?post.                          when ?post/vars, not ?pre/vars
-    ?h :- ?pre not ?1(?pre/vars, ?post/vars), ?post.                    when ?pre/vars, ?post/vars
-    ?h :- ?pre not ?1(?pre/vars), ?post.                                when ?pre/vars, not ?post/vars
-    ?h :- ?pre not ?1(?post/vars), ?post.                               when not ?pre/vars, ?post/vars
+    ?1(?pre/vars, ?post/vars) :- ?pre ?l{?rest}?u, ?post.
+    ?h :- ?pre not ?1(?pre/vars, ?post/vars), ?post.
 
 %% TRANSFORM CARDINALITY CONSTRAINTS TO HAVE ONLY LOWER BOUNDS %%%
 % Cardinality constraint somewhere in the body
@@ -40,22 +36,9 @@
 	?h* :- ?pre* ?l{?rest[,:;]*}?u, ?post*. |  % if it's inside the body
 	?h* :- ?pre* ?l{?rest[,:;]*}?u.         -> % if it's the last term in the body
 	%
-    ?h :- ?1(?pre/vars, ?post/vars), not ?2(?pre/vars, ?post/vars), ?post.      when ?pre/vars, ?post/vars
-    ?1(?pre/vars, ?post/vars) :- ?pre ?l{?rest}, ?post.                         when ?pre/vars, ?post/vars
-    ?2(?pre/vars, ?post/vars) :- ?pre ?u+1{?rest}, ?post.                       when ?pre/vars, ?post/vars
-    %
-    ?h :- ?1(?pre/vars), not ?2(?pre/vars), ?post.                              when ?pre/vars, not ?post/vars
-    ?1(?pre/vars) :- ?pre ?l{?rest}, ?post.                                     when ?pre/vars, not ?post/vars
-    ?2(?pre/vars) :- ?pre ?u+1{?rest}, ?post.                                   when ?pre/vars, not ?post/vars
-    %
-    ?h :- ?1(?post/vars), not ?2(?post/vars), ?post.                            when ?post/vars, not ?pre/vars
-    ?1(?post/vars) :- ?pre ?l{?rest}, ?post.                                    when ?post/vars, not ?pre/vars
-    ?2(?post/vars) :- ?pre ?u+1{?rest}, ?post.                                  when ?post/vars, not ?pre/vars
-    %
-    ?h :- ?1, not ?2, ?post.                                                    when not ?post/vars, not ?pre/vars
-    ?1 :- ?pre ?l{?rest}, ?post.                                                when not ?post/vars, not ?pre/vars
-    ?2 :- ?pre ?u+1{?rest}, ?post.                                              when not ?post/vars, not ?pre/vars
-
+    ?h :- ?1(?pre/vars, ?post/vars), not ?2(?pre/vars, ?post/vars), ?post.
+    ?1(?pre/vars, ?post/vars) :- ?pre ?l{?rest}, ?post.
+    ?2(?pre/vars, ?post/vars) :- ?pre ?u+1{?rest}, ?post.
 
 @lower-bound-to-count
 	?h* :- ?pre* ?l{?bi* : ?ci*; ?rest[;,:]*}, ?body*. |
