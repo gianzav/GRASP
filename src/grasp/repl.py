@@ -45,11 +45,14 @@ def repl(ctx: Context):
                 debug = not debug
                 if debug:
                     logging.basicConfig(level=logging.DEBUG)
+                    logging.disable(logging.NOTSET)
                     print("Debugging enabled")
                 else:
                     logging.disable()
                     print("Debugging disabled")
-
+            case ":delete":
+                rule_name = input("rule: ").strip()
+                ctx.rules = list(filter(lambda r: r.name != rule_name, ctx.rules))
             case _:
                 evaluate(inp, ctx)
 
