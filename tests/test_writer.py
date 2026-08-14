@@ -253,6 +253,20 @@ def test_write_empty_multiple_empty_var_expansion_2():
     _test_write(skeleton, bindings, expected)
 
 
+def test_write_empty_multiple_empty_var_expansion_3():
+    skeleton = "?h :- count(?pre/vars, ?body/vars, C), ?pre, ?body, C >= ?l."
+    bindings = Bindings(
+        {
+            PVC("h"): [_atom("h")],
+            PVC("pre"): [_atom("p(X)")],
+            PVC("body"): [_atom("b(Z)")],
+            PV("l"): model.Integer(1),
+        }
+    )
+    expected = "h :- count(X, Z, C), p(X), b(Z), C >= 1."
+    _test_write(skeleton, bindings, expected)
+
+
 def test_write_empty_var_expansion_removes_arithmetic_and_comparison_operators():
     skeleton = ":- p, ?x/vars >= 1."
     bindings = Bindings({PV("x"): model.String("")})
