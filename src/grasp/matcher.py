@@ -109,16 +109,29 @@ class Bindings:
         self._bindings = bindings if bindings else dict()
         self._names = {var.name: var for var in self._bindings}
         # bindings for fresh skeleton variables
-        self._fresh_bindings: Dict[str, str] = collections.defaultdict(
-            lambda: "_new" + str(next(self.counter))
-        )
+        self._fresh_bindings: Dict[str, str] = dict()
+        self._vars_keys: Dict[VarName, str] = dict()
+
+    def _gen_fresh_key(
+        self, var: NamedSkeletonVariable | NumberSkeletonVariable
+    ) -> str:
+        if isinstance(var, NamedSkeletonVariable):
+            key = "_" + var.name + str(next(self.counter))
+        else:
+            key = "_new" + str(next(self.counter))
+        self._vars_keys[var.name] = key
+        return key
 
     def get_binding(self, key: VarName | SkeletonVariable) -> MatchValue | str:
         if isinstance(key, str):  # VarName
             _key = self._names[key]
             return self._bindings[_key]
         elif isinstance(key, (NamedSkeletonVariable, NumberSkeletonVariable)):
-            return self._fresh_bindings[key.name]
+            if key.name in self._vars_keys:
+                return self._fresh_bindings[self._vars_keys[key.name]]
+            fresh_key = self._gen_fresh_key(key)
+            self._fresh_bindings[self._vars_keys[key.name]] = fresh_key
+            return self._fresh_bindings[self._vars_keys[key.name]]
         elif isinstance(key, SkeletonVariable):
             _key = self._names[key.name]
             return self._bindings[_key]

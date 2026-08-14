@@ -145,7 +145,7 @@ def test_fresh_numbered_variable_same_variable_twice():
 def test_fresh_named_variable():
     skeleton = "?[a] :- ?[a]."
     bindings = Bindings()
-    expected = "_new0 :- _new0."
+    expected = "_a0 :- _a0."
 
     _test_write(skeleton, bindings, expected)
 
@@ -153,7 +153,7 @@ def test_fresh_named_variable():
 def test_fresh_named_variable_extension():
     skeleton = "?[a] :- ?[a]'."
     bindings = Bindings()
-    expected = "_new0 :- _new0'."
+    expected = "_a0 :- _a0'."
 
     _test_write(skeleton, bindings, expected)
 
@@ -249,7 +249,7 @@ def test_write_empty_multiple_empty_var_expansion_2():
             PVC("bi"): [_atom("a")],
         }
     )
-    expected = "_new0(X, Y) :- a, q(Y)."
+    expected = "_val0(X, Y) :- a, q(Y)."
     _test_write(skeleton, bindings, expected)
 
 
