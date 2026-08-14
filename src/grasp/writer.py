@@ -190,7 +190,10 @@ class RuleWriter:
                         assert isinstance(
                             value, list
                         ), f"Binding is of type {type(value)}"
-                        assert all(isinstance(x, (model.Atom, str)) for x in value)
+                        for x in value:
+                            assert isinstance(
+                                x, (model.Atom, str)
+                            ), f"{x} is of type {x.__class__}"
 
                         extended = []
                         for t in value:
