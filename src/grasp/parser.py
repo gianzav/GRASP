@@ -65,7 +65,7 @@ skeleton_impl = string(":-")
 string_part = regex(r'[^"\\]+')
 
 rule_name = lexeme(at >> regex(r"[A-Za-z\-0-9]+"))
-rule_tokens = regex(r"[A-Za-z0-9\-\{\},:;()#&]+") | arith
+rule_tokens = regex(r"[A-Za-z0-9\-\{\},:;()#&_]+") | arith
 
 pipe = lexeme(string("|"))
 

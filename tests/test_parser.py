@@ -185,6 +185,13 @@ def test_parse_atom_name(parser):
     )
 
 
+def test_parse_atom_name_with_exact_string_before(parser):
+    pattern = "_count1?n(?x) :- ?body*."
+    assert parser.parse_pattern(pattern) == model.PatternAlternative(
+        [Pattern(["_count1", PV("n"), "(", PV("x"), ")", ":-", PVC("body"), "."])]
+    )
+
+
 def test_parse_full_pattern_alternatives_expands(parser):
     pattern = "?p :- ?body*. | {?p} :- ?body*. | {?p : ?c} :- ?body*."
     assert parser.parse_pattern(pattern) == model.PatternAlternative(

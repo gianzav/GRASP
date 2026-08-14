@@ -583,3 +583,19 @@ def test_match_pattern_alternatives_no_match():
     rule = "{a}:-."
     expected = ["{", M(PVC("h"), [_atom("a")]), "}", ":-", M(PVC("body"), []), "."]
     _test_match(pattern, rule, expected)
+
+
+def test_match_atom_name_with_exact_string_before():
+    pattern = "_count1?n(?x) :- ?body*."
+    rule = "_count123(a) :- b."
+    expected = [
+        "_count1",
+        M(PV("n"), model.Integer(23)),
+        "(",
+        M(PV("x"), _atom("a")),
+        ")",
+        ":-",
+        M(PVC("body"), [_atom("b")]),
+        ".",
+    ]
+    _test_match(pattern, rule, expected)
