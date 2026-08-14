@@ -105,8 +105,8 @@ If `?atom` matches `p(1)`, the rewrite becomes `p'(1)`.
 
 The system also supports generated symbols in rewritings. In detail:
 
-- Variables whose name is a number represent new symbols, e.g. `?1` or `?231`
-- Variables with a name in square brackets represent new symbols as well, e.g. `?[foo]`, `?[bar1]`
+- Variables whose name is a number represent new symbols, e.g. `?1` or `?231`. A symbol named `_newN` where `N` is an integer (incremental, starting from 0) is generated.
+- Variables with a name in square brackets represent new symbols as well, e.g. `?[foo]`, `?[bar1]`. For a variable `?[foo]`, a new symbol named `_fooN` where `N` is an integer (incremental, starting from 0) is generated.
 
 ### Conditional rewritings
 
