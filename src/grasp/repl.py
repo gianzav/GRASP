@@ -53,6 +53,11 @@ def repl(ctx: Context):
             case ":delete":
                 rule_name = input("rule: ").strip()
                 ctx.rules = list(filter(lambda r: r.name != rule_name, ctx.rules))
+            case ":read":  # read an ASP file to transform
+                fname = input("file name: ")
+                with open(fname, "r") as f:
+                    ctx.buffer = set(f.read().splitlines())
+                evaluate("", ctx)
             case _:
                 evaluate(inp, ctx)
 
