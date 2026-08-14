@@ -31,8 +31,8 @@ VarName = NewType("VarName", str)
 lparen = lexeme(parsy.string("("))
 rparen = lexeme(parsy.string(")"))
 
-variable = lexeme(parsy.regex(r"[_A-Z]+[A-Za-z0-9_']*")).map(model.Variable)
-predicate_symbol = lexeme(parsy.regex(r"[a-z]+[A-Za-z0-9'_]*"))
+variable = lexeme(parsy.regex(r"[_]*[A-Z]+[a-z0-9_']*")).map(model.Variable)
+predicate_symbol = lexeme(parsy.regex(r"[_]*[a-z]+[A-Za-z0-9'_]*"))
 digits = parsy.regex(r"[0-9]+").map(lambda x: model.Integer(int(x)))
 term = parsy.forward_declaration()
 
