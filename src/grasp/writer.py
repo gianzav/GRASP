@@ -55,7 +55,9 @@ def condition_satisfied(condition: model.SkeletonCondition, bindings: Bindings) 
 
             if has_no_variables and is_not_variable and condition._positive:
                 return False
-    return True
+
+    # there was a match, so if codition was positive return True, otherwise False
+    return condition._positive
 
 
 def when_satisfied(
