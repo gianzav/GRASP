@@ -206,7 +206,7 @@ class RuleWriter:
 
                         extended = []
                         for t in value:
-                            if isinstance(t, model.Term):
+                            if isinstance(t, (model.Atom, model.Variable)):
                                 e = copy.deepcopy(t)
                                 e.name = extend_token(token, e.name)
                                 extended.append(e)
