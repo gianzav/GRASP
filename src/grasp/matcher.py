@@ -166,7 +166,7 @@ class RuleMatcher:
         # the name of the atom, not the whole atom with arguments.
         if isinstance(token, model.PatternVariable):
             if next_token == "(":
-                return lexeme(parsy.regex(r"[a-z]+[A-Za-z0-9'_]*").map(model.Atom))
+                return lexeme(predicate_symbol | variable | digits)
             return lexeme(term)
         elif isinstance(token, model.PatternVariableCollection):
 
