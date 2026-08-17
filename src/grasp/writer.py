@@ -194,7 +194,14 @@ class RuleWriter:
                         ), f"Binding is of type {type(value)}"
                         for x in value:
                             assert isinstance(
-                                x, (model.Atom, str)
+                                x,
+                                (
+                                    model.Atom,
+                                    str,
+                                    model.Variable,
+                                    model.Integer,
+                                    model.String,
+                                ),
                             ), f"{x} is of type {x.__class__}"
 
                         extended = []
