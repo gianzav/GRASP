@@ -65,7 +65,9 @@ def atom():
         return model.Atom(name, positive=not_ is None)
 
 
-type MatchValue = model.Atom | List[model.Atom | str] | model.Integer | model.String
+type MatchValue = model.Atom | List[
+    model.Atom | str
+] | model.Integer | model.String | model.PredicateSymbol
 
 
 # avoid left-recursion: start binary expressions from a simple term
