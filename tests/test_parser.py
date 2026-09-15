@@ -26,6 +26,12 @@ def test_parse_exact_rule(parser):
     assert oneline(str(parsed)) == "@rule-name a:-b. -> a."
 
 
+def test_parse_alternatives_stop_at_arrow(parser):
+    rule = "@rule-name a :- b. | c :- d. -> a."
+    parsed = parser.parse(rule)
+    assert oneline(str(parsed)) == "@rule-name a:-b. | c:-d. -> a."
+
+
 def test_parse_variable_in_pattern(parser):
     rule = "@rule-name ?a :- b. -> a."
     parsed = parser.parse(rule)
@@ -164,7 +170,7 @@ def test_parse_plus(parser):
 def test_parse_plus_pattern(parser):
     pattern = r"s(?x+?y)."
     assert parser.parse_pattern(pattern) == model.PatternAlternative(
-        [Pattern(["s(", PatternVariable("x"), "+", PatternVariable("y"), ")", "."])]
+        [Pattern(["s(", PatternVariable("x"), "+", PatternVariable("y"), ")."])]
     )
 
 
@@ -177,8 +183,7 @@ def test_parse_atom_name(parser):
                     PatternVariable("name"),
                     "(",
                     PatternVariableCollection("args"),
-                    ")",
-                    ".",
+                    ").",
                 ]
             )
         ]

@@ -27,7 +27,7 @@ def _test_match(pattern, rule, expected):
 def test_match_exact():
     pattern = "a :- b."
     rule = "a :- b."
-    expected = ["a", ":-", "b", "."]
+    expected = ["a", ":-", "b."]
 
     _test_match(pattern, rule, expected)
 
@@ -35,7 +35,7 @@ def test_match_exact():
 def test_match_atom_no_arguments():
     pattern = "?head :- b."
     rule = "a :- b."
-    expected = [M(PV("head"), _atom("a")), ":-", "b", "."]
+    expected = [M(PV("head"), _atom("a")), ":-", "b."]
 
     _test_match(pattern, rule, expected)
 
@@ -43,7 +43,7 @@ def test_match_atom_no_arguments():
 def test_match_atom_with_arguments():
     pattern = "?head :- b."
     rule = "a(p,X,Y) :- b."
-    expected = [M(PV("head"), _atom("a(p,X,Y)")), ":-", "b", "."]
+    expected = [M(PV("head"), _atom("a(p,X,Y)")), ":-", "b."]
 
     _test_match(pattern, rule, expected)
 
@@ -122,8 +122,7 @@ def test_match_eager():
         "head",
         ":-",
         M(PVC("body"), [_atom("a"), ",", _atom("b"), ",", _atom("c"), ","]),
-        "p",
-        ".",
+        "p.",
     ]
 
     _test_match(pattern, rule, expected)
@@ -249,8 +248,7 @@ def test_atom_list():
     rule = "a,b,c,d."
     expected = [
         M(PVC("atoms"), [_atom("a"), ",", _atom("b"), ",", _atom("c"), ","]),
-        "d",
-        ".",
+        "d.",
     ]
 
     _test_match(pattern, rule, expected)
@@ -279,8 +277,7 @@ def test_match_number():
     expected = [
         "s(",
         M(PV("x"), model.Integer(0)),
-        ")",
-        ".",
+        ").",
     ]
 
     _test_match(pattern, rule, expected)
@@ -294,8 +291,7 @@ def test_match_arith_separate():
         M(PV("x"), model.Variable("X")),
         "+",
         M(PV("y"), model.Variable("Y")),
-        ")",
-        ".",
+        ").",
     ]
 
     _test_match(pattern, rule, expected)
@@ -310,8 +306,7 @@ def test_match_arith_together():
             PV("x"),
             model.Arithmetic("+", [model.Variable("X"), model.Variable("Y")]),
         ),
-        ")",
-        ".",
+        ").",
     ]
 
     _test_match(pattern, rule, expected)
@@ -323,8 +318,7 @@ def test_match_nested_number():
     expected = [
         "s(",
         M(PV("x"), _atom("s(0)")),
-        ")",
-        ".",
+        ").",
     ]
 
     _test_match(pattern, rule, expected)
@@ -338,8 +332,7 @@ def test_match_variables():
         M(PV("x"), model.Variable("X")),
         ",",
         M(PV("y"), model.Variable("Y")),
-        ")",
-        ".",
+        ").",
     ]
 
     _test_match(pattern, rule, expected)
@@ -535,14 +528,13 @@ def test_match_atom_name():
     pattern = r"?name(?args*)."
     rule = "p(1,2,3)."
     expected = [
-        M(PV("name"), _atom("p")),
+        M(PV("name"), "p"),
         "(",
         M(
             PVC("args"),
             [model.Integer(1), ",", model.Integer(2), ",", model.Integer(3)],
         ),
-        ")",
-        ".",
+        ").",
     ]
     _test_match(pattern, rule, expected)
 
@@ -596,6 +588,49 @@ def test_match_atom_name_with_exact_string_before():
         ")",
         ":-",
         M(PVC("body"), [_atom("b")]),
+        ".",
+    ]
+    _test_match(pattern, rule, expected)
+
+
+def test_match_pattern_variable_collection_before_pattern_variable():
+    pattern = """?p(union(?a* ?x, ?b* ?x, ?c*)) :- ?body*."""
+    rule = "p(union(A,X,B,C,X,D)) :- body."
+    # first pattern alternative should match
+    expected = [
+        M(PV("p"), _atom("p")),
+        "(union(",
+        M(PVC("a"), [model.Variable("A"), ","]),
+        M(PV("x"), model.Variable("X")),
+        ",",
+        M(PVC("b"), [model.Variable("B"), ",", model.Variable("C")]),
+        M(PV("x"), model.Variable("X")),
+        ",",
+        M(PVC("c"), [model.Variable("D")]),
+        "))",
+        ":-",
+        M(PVC("body"), [_atom("body")]),
+        ".",
+    ]
+    _test_match(pattern, rule, expected)
+
+
+def test_match_pattern_variable_collection_before_pattern_variable_2():
+    pattern = "?p(union(?a* ?x, ?x, ?c*)) :- ?body*."
+    rule = "p(union(A,X,X,D)) :- body."
+    # first pattern alternative should match
+    expected = [
+        M(PV("p"), _atom("p")),
+        "(union(",
+        M(PVC("a"), [model.Variable("A"), ","]),
+        M(PV("x"), model.Variable("X")),
+        ",",
+        M(PV("x"), model.Variable("X")),
+        ",",
+        M(PVC("c"), [model.Variable("D")]),
+        "))",
+        ":-",
+        M(PVC("body"), [_atom("body")]),
         ".",
     ]
     _test_match(pattern, rule, expected)
