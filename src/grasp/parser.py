@@ -27,6 +27,7 @@ Where
 from parsy import forward_declaration, regex, seq, string, generate, fail, string_from
 from dataclasses import dataclass
 from grasp.model import *
+import parsy
 
 # Utilities
 whitespace = regex(r"\s*")
@@ -63,57 +64,49 @@ skeleton_impl = string(":-")
 # Primitives
 
 string_part = regex(r'[^"\\]+')
-
 rule_name = lexeme(at >> regex(r"[A-Za-z\-0-9]+"))
-rule_tokens = regex(r"[A-Za-z0-9\-\{\},:;()#&_]+") | arith
-
+# ASCII chars but pipe and question mark and at sign
+rule_tokens = (
+    parsy.char_from(
+        "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>[\\]^_`{}~"
+    )
+    .at_least(1)
+    .map(lambda chars: "".join(chars))
+)
 pipe = lexeme(string("|"))
 
 
-def pattern_rule():
-    pattern_variable = lexeme(question_mark >> regex(r"[a-z]+[a-z0-9]*")).map(
-        PatternVariable
-    )
+@generate
+def pattern_variable_collection():
+    yield question_mark
+    name = yield regex(r"[a-z]+[a-z0-9]*")
 
-    @generate
-    def pattern_variable_collection():
-        yield question_mark
-        name = yield regex(r"[a-z]+[a-z0-9]*")
+    option = yield lbrack.optional()
 
-        option = yield lbrack.optional()
+    options = None
+    if option:
+        options = yield regex(r"[\.\;\:\,]+")
+        options = list(set(options))
+        yield rbrack
 
-        options = None
-        if option:
-            options = yield regex(r"[\.\;\:\,]+")
-            options = list(set(options))
-            yield rbrack
+    yield string("*")
 
-        yield string("*")
-
-        if options:
-            return PatternVariableCollection(name, options)
-        else:
-            return PatternVariableCollection(name)
-
-    pattern_rule_tokens = (
-        lexeme(rule_tokens) | lexeme(pattern_variable_collection) | pattern_variable
-    ).at_least(1)
-
-    pattern_rule_head = pattern_rule_tokens
-    pattern_rule_body = pattern_rule_tokens
-
-    pattern_fact = seq(pattern_rule_head, dot).combine(lambda x, y: x + [y])
-    pattern_constraint = seq((impl >> pattern_rule_body), dot).combine(
-        lambda x, y: x + [y]
-    )
-    pattern_full_rule = (pattern_rule_head >> impl) + seq(
-        pattern_rule_body, dot
-    ).combine(lambda x, y: x + [y])
-
-    return (pattern_constraint | pattern_fact | pattern_full_rule).map(Pattern)
+    if options:
+        return PatternVariableCollection(name, options)
+    else:
+        return PatternVariableCollection(name)
 
 
-alternatives = pattern_rule().sep_by(pipe).map(PatternAlternative)
+pattern_variable = lexeme(question_mark >> regex(r"[a-z]+[a-z0-9]*")).map(
+    PatternVariable
+)
+
+pattern_rule_tokens = lexeme(
+    pattern_variable_collection | pattern_variable | rule_tokens
+).at_least(1)
+
+pattern_rule = pattern_rule_tokens.map(Pattern)
+alternatives = pattern_rule.sep_by(pipe).map(PatternAlternative)
 
 
 @generate
@@ -210,7 +203,8 @@ def indent():
 @generate
 def rewriting_rule():
     name = yield whitespace >> rule_name
-    pattern = yield alternatives
+    pattern_text = yield regex(r"[\s\S]*?(?=->)")
+    pattern = alternatives.parse(pattern_text)
     arrow = whitespace << string("->") >> string(" ").many()
     yield arrow
 

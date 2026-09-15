@@ -675,3 +675,32 @@ def test_match_pattern_variable_collection_before_pattern_variable_4():
         ".",
     ]
     _test_match(pattern, rule, expected)
+
+
+def test_match_pattern_variable_collection_before_pattern_variable_5():
+    pattern = "?p(union(?x, ?b* ?x)) :- ?body*."
+    rule = "p(union(X,B,C,D,X)) :- body."
+    # first pattern alternative should match
+    expected = [
+        M(PV("p"), _atom("p")),
+        "(union(",
+        M(PV("x"), model.Variable("X")),
+        ",",
+        M(
+            PVC("b"),
+            [
+                model.Variable("B"),
+                ",",
+                model.Variable("C"),
+                ",",
+                model.Variable("D"),
+                ",",
+            ],
+        ),
+        M(PV("x"), model.Variable("X")),
+        "))",
+        ":-",
+        M(PVC("body"), [_atom("body")]),
+        ".",
+    ]
+    _test_match(pattern, rule, expected)
