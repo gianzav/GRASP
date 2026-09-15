@@ -15,6 +15,7 @@ from grasp.model import (
 )
 from grasp import model
 import copy
+import itertools
 
 
 def extend_token(token: SkeletonVariable, value: str) -> str:
@@ -94,14 +95,16 @@ class RuleWriter:
         """
         result = ""
         last_was_empty = False
-
+        separators = {",", ";", ":", " "}
+        punctuation = {",", ";", ":", "."}
         # empty result if the 'when' condition of the skeleton is not satisfied
         if not when_satisfied(skeleton.when, bindings, rule_name):
             return ""
 
-        for token in skeleton.tokens:
+        for token, next_token in itertools.zip_longest(
+            skeleton.tokens, skeleton.tokens[1:]
+        ):
             if isinstance(token, str):
-                separators = {",", ";", ":", " "}
                 if last_was_empty and token in separators:
                     # When a variable expanded to empty, we removed any trailing
                     # separators from the current result. If a separator follows
@@ -184,11 +187,6 @@ class RuleWriter:
                             continue
                         result += expanded
                     case (SkeletonVariable(), PatternVariableCollection()):
-                        # if token.extension != "":
-                        #     raise NotImplementedError(
-                        #         f"Variable extension not implemented for {type(var)}"
-                        #     )
-
                         assert isinstance(
                             value, list
                         ), f"Binding is of type {type(value)}"
@@ -205,13 +203,25 @@ class RuleWriter:
                             ), f"{x} is of type {x.__class__}"
 
                         extended = []
-                        for t in value:
+
+                        # write all but last tokens in the variable value
+                        for t in value[:-1]:
                             if isinstance(t, (model.Atom, model.Variable)):
                                 e = copy.deepcopy(t)
                                 e.name = extend_token(token, e.name)
                                 extended.append(e)
                             else:
                                 extended.append(t)
+                        # if the next token T' is an explicit punctuation in the skeleton, e.g. a comma, and the last token T is also a separator, don't write T and write only T' instead.
+                        # This allows the safe use of punctuation when using a PatternVariableCollection in the skeleton
+                        last = value[-1]
+                        if not (last in punctuation and next_token in punctuation):
+                            if isinstance(last, (model.Atom, model.Variable)):
+                                e = copy.deepcopy(last)
+                                e.name = extend_token(token, e.name)
+                                extended.append(e)
+                            else:
+                                extended.append(last)
 
                         result += "".join(str(e) for e in extended)
                     case (_, PatternVariable()):
