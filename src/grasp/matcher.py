@@ -217,7 +217,8 @@ class RuleMatcher:
                 constrained_after_collection = collection_constrained | {
                     name
                     for name in following_variables
-                    if has_later_collection and following_variables.count(name) > 1
+                    if name in bindings
+                    or (has_later_collection and following_variables.count(name) > 1)
                 }
 
                 while True:

@@ -634,3 +634,44 @@ def test_match_pattern_variable_collection_before_pattern_variable_2():
         ".",
     ]
     _test_match(pattern, rule, expected)
+
+
+def test_match_pattern_variable_collection_before_pattern_variable_3():
+    pattern = "?p(union(?a* ?x, ?b* ?x)) :- ?body*."
+    rule = "p(union(A,X,B,X)) :- body."
+    # first pattern alternative should match
+    expected = [
+        M(PV("p"), _atom("p")),
+        "(union(",
+        M(PVC("a"), [model.Variable("A"), ","]),
+        M(PV("x"), model.Variable("X")),
+        ",",
+        M(PVC("b"), [model.Variable("B"), ","]),
+        M(PV("x"), model.Variable("X")),
+        "))",
+        ":-",
+        M(PVC("body"), [_atom("body")]),
+        ".",
+    ]
+    _test_match(pattern, rule, expected)
+
+
+def test_match_pattern_variable_collection_before_pattern_variable_4():
+    pattern = "?p(union(?x, ?b* ?x, ?c*)) :- ?body*."
+    rule = "p(union(X,B,X,C)) :- body."
+    # first pattern alternative should match
+    expected = [
+        M(PV("p"), _atom("p")),
+        "(union(",
+        M(PV("x"), model.Variable("X")),
+        ",",
+        M(PVC("b"), [model.Variable("B"), ","]),
+        M(PV("x"), model.Variable("X")),
+        ",",
+        M(PVC("c"), [model.Variable("C")]),
+        "))",
+        ":-",
+        M(PVC("body"), [_atom("body")]),
+        ".",
+    ]
+    _test_match(pattern, rule, expected)
