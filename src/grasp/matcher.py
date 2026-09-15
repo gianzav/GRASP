@@ -191,7 +191,7 @@ class RuleMatcher:
             token_index: int,
             values: List[Match | str],
             bindings: Dict[str, MatchValue],
-            collection_since_variable: bool,
+            collection_constrained: Set[str],
         ) -> parsy.Result:
             if token_index == len(tokens):
                 return parsy.Result.success(index, values)
@@ -205,6 +205,20 @@ class RuleMatcher:
                 item_parser = self._generate_token_matcher(token)
                 collection_values: List[model.Term | str] = []
                 current_index = index
+                following_variables = [
+                    following_token.name
+                    for following_token in tokens[token_index + 1 :]
+                    if isinstance(following_token, model.PatternVariable)
+                ]
+                has_later_collection = any(
+                    isinstance(following_token, model.PatternVariableCollection)
+                    for following_token in tokens[token_index + 1 :]
+                )
+                constrained_after_collection = collection_constrained | {
+                    name
+                    for name in following_variables
+                    if has_later_collection and following_variables.count(name) > 1
+                }
 
                 while True:
                     match_values = collection_values.copy()
@@ -227,7 +241,7 @@ class RuleMatcher:
                         token_index + 1,
                         values + [match],
                         bindings | {token.name: match.value},
-                        True,
+                        constrained_after_collection,
                     )
                     if result.status:
                         return result
@@ -250,7 +264,7 @@ class RuleMatcher:
                     token_index + 1,
                     values + [result.value],
                     bindings,
-                    collection_since_variable,
+                    collection_constrained,
                 )
 
             if isinstance(next_token, str) and next_token in arith_operators:
@@ -265,7 +279,7 @@ class RuleMatcher:
 
             match = Match(token, result.value)
             if (
-                collection_since_variable
+                token.name in collection_constrained
                 and token.name in bindings
                 and bindings[token.name] != result.value
             ):
@@ -276,12 +290,12 @@ class RuleMatcher:
                 token_index + 1,
                 values + [match],
                 bindings | {token.name: result.value},
-                False,
+                collection_constrained,
             )
 
         def pattern_parser(stream: str, index: int) -> parsy.Result:
             whitespace_result = whitespace(stream, index)
-            return parse_from(stream, whitespace_result.index, 0, [], {}, False)
+            return parse_from(stream, whitespace_result.index, 0, [], {}, set())
 
         return parsy.Parser(pattern_parser)
 
