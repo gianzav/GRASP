@@ -66,7 +66,7 @@ def atom():
 
 
 type MatchValue = model.Atom | List[
-    model.Atom | str
+    model.Term | str
 ] | model.Integer | model.String | model.PredicateSymbol
 
 
@@ -167,6 +167,8 @@ class RuleMatcher:
         if isinstance(token, model.PatternVariable):
             if next_token == "(":
                 return lexeme(predicate_symbol | variable | digits)
+            if isinstance(next_token, str) and next_token.startswith("("):
+                return lexeme(predicate_symbol.map(model.Atom) | variable | digits)
             return lexeme(term)
         elif isinstance(token, model.PatternVariableCollection):
 
@@ -181,33 +183,107 @@ class RuleMatcher:
             return lexeme(parsy.string(token))
 
     def _generate_pattern_matcher(self, pattern: model.Pattern) -> parsy.Parser:
-        parser = whitespace.map(lambda x: [])
+        tokens = list(pattern.tokens)
 
-        for i, (token, next_token) in enumerate(
-            zip(pattern.tokens, list(pattern.tokens)[1:] + [None])
-        ):
-            # match eagerly all the atoms up to the next token
+        def parse_from(
+            stream: str,
+            index: int,
+            token_index: int,
+            values: List[Match | str],
+            bindings: Dict[str, MatchValue],
+            collection_since_variable: bool,
+        ) -> parsy.Result:
+            if token_index == len(tokens):
+                return parsy.Result.success(index, values)
+
+            token = tokens[token_index]
+            next_token = (
+                tokens[token_index + 1] if token_index + 1 < len(tokens) else None
+            )
+
             if isinstance(token, model.PatternVariableCollection):
-                this = self._generate_token_matcher(token)
-                match = Match(token)
-                parser += this.until(
-                    self._generate_pattern_matcher(
-                        model.Pattern(pattern.tokens[i + 1 :])
+                item_parser = self._generate_token_matcher(token)
+                collection_values: List[model.Term | str] = []
+                current_index = index
+
+                while True:
+                    match_values = collection_values.copy()
+                    repeated_variable_follows = any(
+                        isinstance(following_token, model.PatternVariable)
+                        and following_token.name in bindings
+                        for following_token in tokens[token_index + 1 :]
                     )
-                ).map(lambda xs, m=match: [m.bind_value(flatten(xs))])
-            elif isinstance(token, str):
-                parser += self._generate_token_matcher(token).map(lambda x: [x])
-            else:  # if token is a PatternVariable
-                match = Match(token)
-                if isinstance(next_token, str) and next_token in arith_operators:
-                    parser += lexeme(simple_term).map(
-                        lambda x, m=match: [m.bind_value(x)]
+                    if (
+                        repeated_variable_follows
+                        and len(match_values) > 2
+                        and isinstance(match_values[-1], str)
+                    ):
+                        match_values.pop()
+                    match = Match(token, match_values)
+                    assert match.value is not None
+                    result = parse_from(
+                        stream,
+                        current_index,
+                        token_index + 1,
+                        values + [match],
+                        bindings | {token.name: match.value},
+                        True,
                     )
-                else:
-                    parser += self._generate_token_matcher(token, next_token).map(
-                        lambda x, m=match: [m.bind_value(x)]
-                    )
-        return parser
+                    if result.status:
+                        return result
+
+                    item_result = item_parser(stream, current_index)
+                    if not item_result.status:
+                        return parsy.Result.failure(
+                            current_index, "a matching collection"
+                        )
+                    collection_values.extend(item_result.value)
+                    current_index = item_result.index
+
+            if isinstance(token, str):
+                result = self._generate_token_matcher(token)(stream, index)
+                if not result.status:
+                    return result
+                return parse_from(
+                    stream,
+                    result.index,
+                    token_index + 1,
+                    values + [result.value],
+                    bindings,
+                    collection_since_variable,
+                )
+
+            if isinstance(next_token, str) and next_token in arith_operators:
+                token_parser = lexeme(simple_term)
+            else:
+                token_parser = self._generate_token_matcher(
+                    token, next_token if isinstance(next_token, str) else None
+                )
+            result = token_parser(stream, index)
+            if not result.status:
+                return result
+
+            match = Match(token, result.value)
+            if (
+                collection_since_variable
+                and token.name in bindings
+                and bindings[token.name] != result.value
+            ):
+                return parsy.Result.failure(result.index, "repeated variable")
+            return parse_from(
+                stream,
+                result.index,
+                token_index + 1,
+                values + [match],
+                bindings | {token.name: result.value},
+                False,
+            )
+
+        def pattern_parser(stream: str, index: int) -> parsy.Result:
+            whitespace_result = whitespace(stream, index)
+            return parse_from(stream, whitespace_result.index, 0, [], {}, False)
+
+        return parsy.Parser(pattern_parser)
 
     def match(
         self, pattern: str | model.Pattern | model.PatternAlternative, rule: str
