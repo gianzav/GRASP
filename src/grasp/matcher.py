@@ -205,14 +205,17 @@ class RuleMatcher:
                 item_parser = self._generate_token_matcher(token)
                 collection_values: List[model.Term | str] = []
                 current_index = index
+                following_tokens = tokens[token_index + 1 :]
+                if ":-" in following_tokens:
+                    following_tokens = following_tokens[: following_tokens.index(":-")]
                 following_variables = [
                     following_token.name
-                    for following_token in tokens[token_index + 1 :]
+                    for following_token in following_tokens
                     if isinstance(following_token, model.PatternVariable)
                 ]
                 has_later_collection = any(
                     isinstance(following_token, model.PatternVariableCollection)
-                    for following_token in tokens[token_index + 1 :]
+                    for following_token in following_tokens
                 )
                 constrained_after_collection = collection_constrained | {
                     name
@@ -226,10 +229,11 @@ class RuleMatcher:
                     repeated_variable_follows = any(
                         isinstance(following_token, model.PatternVariable)
                         and following_token.name in bindings
-                        for following_token in tokens[token_index + 1 :]
+                        for following_token in following_tokens
                     )
                     if (
                         repeated_variable_follows
+                        and has_later_collection
                         and len(match_values) > 2
                         and isinstance(match_values[-1], str)
                     ):
@@ -304,6 +308,7 @@ class RuleMatcher:
         self, pattern: str | model.Pattern | model.PatternAlternative, rule: str
     ) -> List[Match | str]:
         if isinstance(pattern, str):
+            pattern = pattern.lstrip()
             alternatives: model.PatternAlternative = self.parser.parse_pattern(pattern)
             matcher = parsy.alt(
                 *(self._generate_pattern_matcher(p) for p in alternatives)
